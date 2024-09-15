@@ -1,0 +1,18 @@
+import CustomError from "../../utils/lib/customError";
+import Wrapper from "../middlewares/asyncWrapper/wrapper";
+
+abstract class CommonAbstractController {
+  protected asyncWrapper: Wrapper;
+  constructor() {
+    this.asyncWrapper = new Wrapper();
+  }
+
+  protected error(message?: string, status?: number, type?: string) {
+    throw new CustomError(
+      message || "Something went wrong",
+      status || 500,
+      type || "Internal server Error"
+    );
+  }
+}
+export default CommonAbstractController;
