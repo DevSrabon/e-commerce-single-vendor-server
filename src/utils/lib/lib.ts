@@ -1,10 +1,20 @@
-import { allStrings } from '../miscellaneous/constants';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import config from '../config/config';
-import nodemailer from 'nodemailer';
+import bcrypt from "bcryptjs";
+import { createCanvas } from "canvas";
+import JsBarcode from "jsbarcode";
+import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import QRCode from "qrcode";
+import config from "../config/config";
+import { allStrings, CLIENT_URL } from "../miscellaneous/constants";
+import ManageFile from "./manageFile";
 
 class Lib {
+  private manageFile: ManageFile;
+
+  constructor() {
+    this.manageFile = new ManageFile(); // Instantiate ManageFile within the constructor
+  }
+
   // make hashed password
 
   public static async hashPass(password: string) {
@@ -42,7 +52,7 @@ class Lib {
 
   public static otpGenNumber(length: number) {
     const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
-    let otp = '';
+    let otp = "";
 
     for (let i = 0; i < length; i++) {
       const randomNumber = Math.floor(Math.random() * 10);
@@ -55,7 +65,7 @@ class Lib {
 
   // generate random Number and alphabet
   public static otpGenNumberAndAlphabet(length: number) {
-    let otp = '';
+    let otp = "";
 
     for (let i = 0; i < length; i++) {
       const randomNumber = Math.floor(Math.random() * 10);
@@ -74,7 +84,7 @@ class Lib {
   ) {
     try {
       const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        service: "gmail",
         auth: {
           user: config.EMAIL_SEND_EMAIL_ID,
           pass: config.EMAIL_SEND_PASSWORD,
@@ -88,7 +98,7 @@ class Lib {
         html: emailBody,
       });
 
-      console.log('Message send: %s', info);
+      console.log("Message send: %s", info);
 
       return true;
     } catch (err: any) {
@@ -102,15 +112,90 @@ class Lib {
     str = str.trim();
 
     // Replace spaces with dashes
-    str = str.replace(/\s+/g, '-');
+    str = str.replace(/\s+/g, "-");
 
     // Remove special characters, Bangla script characters included
-    str = str.replace(/[^\u0980-\u09FFa-z0-9-]/g, '');
+    str = str.replace(/[^\u0980-\u09FFa-z0-9-]/g, "");
 
     // Convert to lowercase
     str = str.toLowerCase();
 
     return str;
+  }
+
+  // Generate SKU, QR Code, and Barcode
+  public async generateProductAssets(
+    productName: string,
+    categoryCode: number,
+    productId: number
+  ) {
+    // 1. Generate SKU
+    const namePart = productName
+      .substring(0, 3)
+      .toUpperCase()
+      .replace(/-/g, "");
+    const categoryPart = categoryCode.toString().substring(0, 3).toUpperCase();
+    // const randomPart = uuidv4().substring(0, 4).toUpperCase();
+    const sku = `${namePart}-${categoryPart}-${productId}`;
+
+    // 2. Generate QR Code
+    const qrCodeFileName = `product_files/barcode/qrCode-${Date.now()}.png`;
+    const qrCodeData = await this.generateQRCode(
+      `${CLIENT_URL}/products/${productName}`,
+      qrCodeFileName
+    );
+
+    // 3. Generate Barcode (CODE128)
+    const barcodeFileName = `product_files/barcode/barcode-${Date.now()}.png`;
+    const barcodeData = await this.generateBarcode(sku, barcodeFileName);
+
+    // Return SKU, QR Code path, and Barcode path
+    return {
+      sku,
+      qrCodeFilePath: qrCodeData,
+      barcodeFilePath: barcodeData,
+    };
+  }
+
+  // Helper method to generate QR Code and upload to S3
+  private async generateQRCode(data: string, filePath: string) {
+    try {
+      const url = await QRCode.toDataURL(data);
+      const base64Data = url.replace(/^data:image\/png;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      // Upload to S3
+      await this.manageFile.awsUploadBuffer(buffer, filePath);
+      return filePath;
+    } catch (err) {
+      console.error("QR Code Error", err);
+      throw new Error("Failed to generate QR Code");
+    }
+  }
+
+  // Helper method to generate Barcode and upload to S3
+  private async generateBarcode(data: string, filePath: string) {
+    try {
+      const canvas = createCanvas(400, 100); // Adjust canvas size as needed
+      JsBarcode(canvas, data, {
+        format: "CODE128",
+        lineColor: "#000",
+        width: 2,
+        height: 100,
+        displayValue: true,
+      });
+
+      const url = canvas.toDataURL("image/png");
+      const base64Data = url.replace(/^data:image\/png;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      // Upload to S3
+      await this.manageFile.awsUploadBuffer(buffer, filePath);
+      return filePath;
+    } catch (err) {
+      console.error("Barcode Error", err);
+      throw new Error("Failed to generate Barcode");
+    }
   }
 
   // getnerate email otp html

@@ -4,9 +4,12 @@ class AdminProductValidator {
   // create product validator
   public createProductValidator() {
     return [
-      body("p_s_id", "Provide product supplier id")
-        .exists({ checkFalsy: false })
-        .isInt(),
+      // body("p_s_id", "Provide product supplier id")
+      //   .exists({ checkFalsy: false })
+      //   .isInt(),
+      body("colors", "Provide colors array").exists(),
+      body("sizes", "Provide sizes array").exists(),
+      body("variants", "Provide variants array").exists(),
       body("p_name", "Provide product name")
         .exists({ checkFalsy: false })
         .isString(),
@@ -148,15 +151,14 @@ class AdminProductValidator {
   // ============ product attribute validator ============//
   public createColorValidator() {
     return [
-      body("name", "Provide color name").exists().isString(),
+      body("color", "Provide color color").exists().isString(),
       body("code", "Provide color code").exists().isString(),
       body("details", "Provide color details").optional(),
-      body("p_id", "Provide product id").exists({ checkNull: false }).isInt(),
     ];
   }
   public updateColorValidator() {
     return [
-      body("name", "Provide color name").optional(),
+      body("color", "Provide color color").optional(),
       body("code", "Provide color code").optional(),
       body("details", "Provide color details").optional(),
       body("p_id", "Provide product id").isInt().optional(),
@@ -165,11 +167,165 @@ class AdminProductValidator {
   }
   public getAllColorQueryValidator() {
     return [
-      query("name", "Provide color name").optional(),
+      query("color", "Provide  color").optional(),
       query("code", "Provide color code").optional(),
       query("is_active", "Provide color status").isIn(["0", "1"]).optional(),
       query("limit", "Provide limit").isInt().optional(),
       query("skip", "Provide skip").isInt().optional(),
+    ];
+  }
+
+  // Validator for creating a new size
+  public createSizeValidator() {
+    return [
+      body("size")
+        .notEmpty()
+        .withMessage("Size is required")
+        .isString()
+        .withMessage("Size must be a string")
+        .isLength({ max: 45 })
+        .withMessage("Size cannot exceed 45 characters"),
+      body("height")
+        .notEmpty()
+        .withMessage("Height is required")
+        .isString()
+        .withMessage("Height must be a string")
+        .isLength({ max: 45 })
+        .withMessage("Height cannot exceed 45 characters"),
+      body("weight")
+        .notEmpty()
+        .withMessage("Weight is required")
+        .isString()
+        .withMessage("Weight must be a string")
+        .isLength({ max: 45 })
+        .withMessage("Weight cannot exceed 45 characters"),
+      body("details")
+        .optional()
+        .isString()
+        .withMessage("Details must be a string")
+        .isLength({ max: 555 })
+        .withMessage("Details cannot exceed 555 characters"),
+      body("is_active")
+        .optional()
+        .isBoolean()
+        .withMessage("is_active must be a boolean value"),
+    ];
+  }
+
+  // Validator for querying sizes
+  public getAllSizeQueryValidator() {
+    return [
+      query("limit")
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage("Limit must be a positive integer"),
+      query("page")
+        .optional()
+        .isInt({ min: 0 })
+        .withMessage("Page must be a non-negative integer"),
+      query("size").optional().isString().withMessage("Size must be a string"),
+      query("is_active")
+        .optional()
+        .isBoolean()
+        .withMessage("is_active must be a boolean value"),
+    ];
+  }
+
+  // Validator for updating a size
+  public updateSizeValidator() {
+    return [
+      body("size")
+        .optional()
+        .isString()
+        .withMessage("Size must be a string")
+        .isLength({ max: 45 })
+        .withMessage("Size cannot exceed 45 characters"),
+      body("height")
+        .optional()
+        .isString()
+        .withMessage("Height must be a string")
+        .isLength({ max: 45 })
+        .withMessage("Height cannot exceed 45 characters"),
+      body("weight")
+        .optional()
+        .isString()
+        .withMessage("Weight must be a string")
+        .isLength({ max: 45 })
+        .withMessage("Weight cannot exceed 45 characters"),
+      body("details")
+        .optional()
+        .isString()
+        .withMessage("Details must be a string")
+        .isLength({ max: 555 })
+        .withMessage("Details cannot exceed 555 characters"),
+      body("is_active")
+        .optional()
+        .isBoolean()
+        .withMessage("is_active must be a boolean value"),
+    ];
+  }
+
+  // Validator for creating a new fabric
+  public createFabricValidator() {
+    return [
+      body("name")
+        .notEmpty()
+        .withMessage("Fabric name is required")
+        .isString()
+        .withMessage("Fabric name must be a string")
+        .isLength({ max: 255 })
+        .withMessage("Fabric name cannot exceed 255 characters"),
+      body("details")
+        .optional()
+        .isString()
+        .withMessage("Details must be a string")
+        .isLength({ max: 555 })
+        .withMessage("Details cannot exceed 555 characters"),
+      body("is_active")
+        .optional()
+        .isBoolean()
+        .withMessage("is_active must be a boolean value"),
+    ];
+  }
+
+  // Validator for querying fabrics
+  public getAllFabricQueryValidator() {
+    return [
+      query("limit")
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage("Limit must be a positive integer"),
+      query("page")
+        .optional()
+        .isInt({ min: 0 })
+        .withMessage("Page must be a non-negative integer"),
+      query("name").optional().isString().withMessage("Name must be a string"),
+      query("is_active")
+        .optional()
+        .isBoolean()
+        .withMessage("is_active must be a boolean value"),
+    ];
+  }
+
+  // Validator for updating a fabric
+  public updateFabricValidator() {
+    return [
+      body("name")
+        .optional()
+        .isString()
+        .withMessage("Fabric name must be a string")
+        .isLength({ max: 255 })
+        .withMessage("Fabric name cannot exceed 255 characters"),
+      body("details")
+        .optional()
+        .isString()
+        .withMessage("Details must be a string")
+        .isLength({ max: 555 })
+        .withMessage("Details cannot exceed 555 characters"),
+      body("is_active")
+        .optional()
+        .isBoolean()
+        .withMessage("is_active must be a boolean value"),
     ];
   }
 }

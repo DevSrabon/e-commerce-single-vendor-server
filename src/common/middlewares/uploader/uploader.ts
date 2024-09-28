@@ -4,6 +4,7 @@ import multerS3 from "multer-s3";
 import path from "path";
 import config from "../../../utils/config/config";
 import CustomError from "../../../utils/lib/customError";
+import { ROOT_FOLDER } from "../../../utils/miscellaneous/constants";
 import CommonAbstractStorage from "../../commonAbstract/common.abstract.storage";
 import Wrapper from "../asyncWrapper/wrapper";
 const allowed_file_types: string[] = [
@@ -47,12 +48,13 @@ class Uploader extends CommonAbstractStorage {
               "-" +
               Math.round(Math.random() * 1e9) +
               path.extname(file.originalname);
-            file.filename = uniqueName;
+            file.filename = `${folder}/${uniqueName}`;
             req.upFiles.push({ filename: uniqueName, folder: folder });
-            cb(null, `me-mart/${folder}/${uniqueName}`);
+            cb(null, `${ROOT_FOLDER}/${folder}/${uniqueName}`);
           },
         }),
         fileFilter: function (req, file, cb) {
+          console.log(file);
           // Check allowed extensions
           const isAllowedExt = allowed_file_types.includes(file.mimetype);
           if (isAllowedExt) {
