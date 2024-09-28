@@ -150,7 +150,6 @@ class AdminProductService extends AdminAbstractServices {
           pi_p_id: productId,
           pi_image: file.filename,
         }));
-      console.log("===========================1");
 
       const colorsArray = await Promise.all(
         parsedColor.map(async (colorId: number, colorIndex: number) => {
@@ -168,28 +167,12 @@ class AdminProductService extends AdminAbstractServices {
         })
       );
 
-      console.log("===========================2");
-
       if (colorsArray.length) {
-        console.log(
-          "🚀 ~ AdminProductService ~ returnawaitthis.db.transaction ~ colorsArray:",
-          colorsArray
-        );
-
         // Insert the colors and get the first inserted ID
         const [pColor] = await trx("p_color").insert(colorsArray);
-        console.log(
-          "🚀 ~ AdminProductService ~ returnawaitthis.db.transaction ~ pColor:",
-          pColor
-        );
 
         // Create an array of the inserted color IDs based on the first inserted ID
         const productColorId = colorsArray.map((_, index) => pColor + index);
-
-        console.log(
-          "🚀 ~ AdminProductService ~ returnawaitthis.db.transaction ~ productColorId:",
-          productColorId
-        );
 
         const insertColorImg = await Promise.all(
           parsedColor.map(async (colorId: number, colorIndex: number) => {
@@ -201,13 +184,13 @@ class AdminProductService extends AdminAbstractServices {
               throw new Error("Invalid color id");
             }
 
-            const colorImages = [];
+            const colorImages: any[] = [];
 
             files.forEach((file) => {
               if (file.fieldname === `colorsPhotos_${colorIndex + 1}`) {
                 colorImages.push({
                   p_id: productId,
-                  p_color_id: productColorId[colorIndex], // Use the color index to assign the correct color ID
+                  p_color_id: productColorId[colorIndex],
                   image: file.filename,
                 });
               }
@@ -218,10 +201,6 @@ class AdminProductService extends AdminAbstractServices {
         );
 
         const flattenedInsertColorImg = insertColorImg.flat();
-        console.log(
-          "🚀 ~ AdminProductService ~ returnawaitthis.db.transaction ~ flattenedInsertColorImg:",
-          flattenedInsertColorImg
-        );
 
         if (!flattenedInsertColorImg.length) {
           return {
@@ -232,8 +211,6 @@ class AdminProductService extends AdminAbstractServices {
 
         await trx("color_image").insert(flattenedInsertColorImg);
       }
-
-      console.log("====================3");
 
       // Handle size insertion
       const sizeInsertedData = await Promise.all(
