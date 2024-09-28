@@ -3,8 +3,34 @@ import Lib from "../../utils/lib/lib";
 import AdminAbstractServices from "../adminAbstracts/admin.abstract.service";
 interface IProductVariants {
   id: number;
+  fabric_id: number;
   price: number;
+  is_default?: boolean;
 }
+interface IColor {
+  id: number;
+  code: string;
+  color: string;
+  details: string;
+  is_active?: boolean;
+}
+
+interface ISize {
+  id: number;
+  size: string;
+  height: string;
+  weight: string;
+  details?: string;
+  is_active?: boolean;
+}
+
+interface IFabric {
+  id: number;
+  name: string;
+  details?: string;
+  is_active?: boolean;
+}
+
 class AdminProductService extends AdminAbstractServices {
   constructor() {
     super();
@@ -19,14 +45,21 @@ class AdminProductService extends AdminAbstractServices {
       p_tags,
       p_details,
       category,
-      colors: c,
-      sizes: s,
-      variants: v,
+      colors,
+      sizes,
+      variants,
       p_unit,
     } = req.body;
-    const variants = JSON.parse(v);
-    const colors = JSON.parse(c);
-    const sizes = JSON.parse(s);
+    const parsedVariants = variants ? JSON.parse(variants) : [];
+    const parsedColor = colors ? JSON.parse(colors) : [];
+    const parsedSizes = sizes ? JSON.parse(sizes) : [];
+
+    if (!parsedColor.length || !parsedSizes.length || !parsedVariants.length) {
+      return {
+        success: false,
+        message: "Please provide color, sizes and variants",
+      };
+    }
 
     const checkProduct = await this.db("product")
       .select("p_name")
@@ -117,9 +150,10 @@ class AdminProductService extends AdminAbstractServices {
           pi_p_id: productId,
           pi_image: file.filename,
         }));
+      console.log("===========================1");
 
-      const colorImgArray = await Promise.all(
-        colors.map(async (colorId: number, colorIndex: number) => {
+      const colorsArray = await Promise.all(
+        parsedColor.map(async (colorId: number, colorIndex: number) => {
           const checkColor = await trx("color")
             .select("id")
             .where({ id: colorId });
@@ -127,26 +161,83 @@ class AdminProductService extends AdminAbstractServices {
             throw new Error("Invalid color id");
           }
 
-          const colorPhotos = files.filter(
-            (file) => file.fieldname === `colorsPhotos_${colorIndex + 1}`
-          );
-          return colorPhotos.map((photo) => ({
+          return {
             p_id: productId,
             color_id: colorId,
-            image: photo.filename,
-          }));
+          };
         })
       );
 
-      // Flatten color images array before insertion
-      const flattenedColorImgArray = colorImgArray.flat();
-      if (flattenedColorImgArray.length) {
-        await trx("color_image").insert(flattenedColorImgArray);
+      console.log("===========================2");
+
+      if (colorsArray.length) {
+        console.log(
+          "🚀 ~ AdminProductService ~ returnawaitthis.db.transaction ~ colorsArray:",
+          colorsArray
+        );
+
+        // Insert the colors and get the first inserted ID
+        const [pColor] = await trx("p_color").insert(colorsArray);
+        console.log(
+          "🚀 ~ AdminProductService ~ returnawaitthis.db.transaction ~ pColor:",
+          pColor
+        );
+
+        // Create an array of the inserted color IDs based on the first inserted ID
+        const productColorId = colorsArray.map((_, index) => pColor + index);
+
+        console.log(
+          "🚀 ~ AdminProductService ~ returnawaitthis.db.transaction ~ productColorId:",
+          productColorId
+        );
+
+        const insertColorImg = await Promise.all(
+          parsedColor.map(async (colorId: number, colorIndex: number) => {
+            const checkColor = await trx("color")
+              .select("id")
+              .where({ id: colorId });
+
+            if (!checkColor.length) {
+              throw new Error("Invalid color id");
+            }
+
+            const colorImages = [];
+
+            files.forEach((file) => {
+              if (file.fieldname === `colorsPhotos_${colorIndex + 1}`) {
+                colorImages.push({
+                  p_id: productId,
+                  p_color_id: productColorId[colorIndex], // Use the color index to assign the correct color ID
+                  image: file.filename,
+                });
+              }
+            });
+
+            return colorImages;
+          })
+        );
+
+        const flattenedInsertColorImg = insertColorImg.flat();
+        console.log(
+          "🚀 ~ AdminProductService ~ returnawaitthis.db.transaction ~ flattenedInsertColorImg:",
+          flattenedInsertColorImg
+        );
+
+        if (!flattenedInsertColorImg.length) {
+          return {
+            success: false,
+            message: "Color image not inserted",
+          };
+        }
+
+        await trx("color_image").insert(flattenedInsertColorImg);
       }
+
+      console.log("====================3");
 
       // Handle size insertion
       const sizeInsertedData = await Promise.all(
-        sizes.map(async (sizeId: number) => {
+        parsedSizes.map(async (sizeId: number) => {
           const checkSize = await trx("size")
             .select("id")
             .where({ id: sizeId });
@@ -175,9 +266,9 @@ class AdminProductService extends AdminAbstractServices {
         i_quantity_available: p_unit,
       });
 
-      // Insert variants
+      // Insert parsedVariants
       const variantInsertedData = await Promise.all(
-        variants.map(async (el: IProductVariants) => {
+        parsedVariants.map(async (el: IProductVariants) => {
           if (el.price < 0) {
             throw new Error("Invalid variant price");
           }
@@ -218,106 +309,307 @@ class AdminProductService extends AdminAbstractServices {
     });
   }
 
-  // public async createProduct(req: Request) {
-  //   const {
-  //     p_s_id,
-  //     p_name,
-  //     p_tags,
-  //     p_details,
-  //     category,
-  //     colors,
-  //     colorsPhoto,
-  //     sizes,
-  //     variants: v,
-  //     attribute_value,
-  //     p_organic,
-  //     p_unit,
-  //   } = req.body;
-  //   const variants = JSON.parse(v);
-  //   const checkProduct = await this.db("product")
-  //     .select("p_name")
-  //     .where({ p_name });
+  // update a product service
+  public async updateProduct(req: Request) {
+    const { id } = req.params;
+    const {
+      added_category,
+      removed_category,
+      removed_image,
+      added_variants,
+      edit_variants,
+      delete_variants,
+      removed_variants,
+      added_colors,
+      removed_colors,
+      added_sizes,
+      removed_sizes,
+      remove_color_photos,
+      ...rest
+    } = req.body;
 
-  //   if (checkProduct.length) {
-  //     return {
-  //       success: false,
-  //       message: "Product name already exist",
-  //     };
-  //   }
+    const addedCategory: number[] = added_category
+      ? JSON.parse(added_category)
+      : [];
+    const removedCategory: number[] = removed_category
+      ? JSON.parse(removed_category)
+      : [];
+    const addedVariants: IProductVariants[] = added_variants
+      ? JSON.parse(added_variants)
+      : [];
+    const removeVariants: number[] = removed_variants
+      ? JSON.parse(removed_variants)
+      : [];
+    const removedImage: { image_id: number; image_name: string }[] =
+      removed_image ? JSON.parse(removed_image) : [];
 
-  //   const files = (req.files as Express.Multer.File[]) || [];
+    const editVariants: IProductVariants[] = edit_variants
+      ? JSON.parse(edit_variants)
+      : [];
 
-  //   if (!files.length) {
-  //     return {
-  //       success: false,
-  //       message: "You must provide product image",
-  //     };
-  //   }
+    const addedColors: number[] = added_colors ? JSON.parse(added_colors) : [];
+    const removedColorPhotos: number[] = remove_color_photos
+      ? JSON.parse(remove_color_photos)
+      : [];
+    const removedColors: number[] = removed_colors
+      ? JSON.parse(removed_colors)
+      : [];
+    const addedSizes: ISize[] = added_sizes ? JSON.parse(added_sizes) : [];
+    const removedSizes: number[] = removed_sizes
+      ? JSON.parse(removed_sizes)
+      : [];
+    console.log(req.body, "request body");
 
-  //   return await this.db.transaction(async (trx) => {
-  //     const p_slug = Lib.stringToSlug(p_name);
+    const checkProduct = await this.db("product")
+      .select("p_name")
+      .where({ p_id: id });
 
-  //     const productRes = await trx("product").insert({
-  //       p_s_id,
-  //       p_name,
-  //       p_slug,
-  //       p_tags,
-  //       p_details,
-  //       p_unit,
-  //       p_organic,
-  //     });
+    if (!checkProduct.length) {
+      return {
+        success: false,
+        message: "Product not found",
+      };
+    }
 
-  //     let categoryArray: Object[] = [];
-  //     const parseCategory = JSON.parse(category);
+    return await this.db.transaction(async (trx) => {
+      const files = (req.files as Express.Multer.File[]) || [];
 
-  //     parseCategory.forEach((el: number) => {
-  //       categoryArray.push({
-  //         pc_p_id: productRes[0],
-  //         pc_cate_id: el,
-  //       });
-  //     });
-  //     await trx("product_category").insert(categoryArray);
+      const newImage: { pi_image: string; pi_p_id: number | string }[] = [];
 
-  //     if (attribute_value !== "undefined") {
-  //       let AvArray: Object[] = [];
-  //       const parseAv = JSON.parse(attribute_value);
+      files.forEach((item) => {
+        if (item.fieldname === "new_image") {
+          newImage.push({ pi_image: item.filename, pi_p_id: id });
+        }
+      });
 
-  //       parseAv.forEach((el: number) => {
-  //         AvArray.push({
-  //           pa_p_id: productRes[0],
-  //           pa_av_id: el,
-  //         });
-  //       });
+      //  ========== Category ==============
+      if (removedCategory.length) {
+        await trx("product_category")
+          .whereIn("pc_cate_id", removedCategory)
+          .andWhere("pc_p_id", id)
+          .delete();
+      }
 
-  //       await trx("product_attribute").insert(AvArray);
-  //     }
+      if (addedCategory.length) {
+        await trx("product_category").insert(
+          addedCategory.map((item: number) => {
+            return { pc_p_id: id, pc_cate_id: item };
+          })
+        );
+      }
 
-  //     let imgArray: Object[] = [];
+      //  ========== Variants ==============
 
-  //     files.forEach((el: any) => {
-  //       imgArray.push({
-  //         pi_p_id: productRes[0],
-  //         pi_image: el.filename,
-  //       });
-  //     });
+      if (removeVariants.length) {
+        await trx("product_variant")
+          .whereIn("id", removeVariants)
+          .andWhere("p_id", id)
+          .delete();
+      }
 
-  //     const pImageRes = await trx("product_image").insert(imgArray);
+      if (addedVariants.length) {
+        const checkFabric = await trx("fabric")
+          .select("id")
+          .whereIn(
+            "id",
+            addedVariants.map((el: IProductVariants) => el.id)
+          );
 
-  //     if (pImageRes.length) {
-  //       return {
-  //         success: true,
-  //         message: "Successfully product created",
-  //       };
-  //     } else {
-  //       return {
-  //         success: false,
-  //         message: "Cannot product create at this moment",
-  //       };
-  //     }
-  //   });
-  // }
+        if (checkFabric.length !== addedVariants.length) {
+          throw new Error("Invalid fabric id");
+        }
 
-  // get all product by status and categroy
+        await trx("product_variant").insert(
+          addedVariants.map((el: IProductVariants) => {
+            return { p_id: id, fabric_id: el.fabric_id, price: el.price };
+          })
+        );
+      }
+
+      if (editVariants.length) {
+        editVariants.forEach(async (el) => {
+          const checkVariant = await trx("product_variant")
+            .select("id")
+            .where({ id: el.id });
+          if (!checkVariant.length) {
+            throw new Error("Invalid variant id");
+          }
+          const checkFabric = await trx("fabric")
+            .select("id")
+            .where({ id: el.fabric_id });
+          if (!checkFabric.length) {
+            throw new Error("Invalid fabric id");
+          }
+          await trx("product_variant").update(el).where({ id: el.id });
+        });
+      }
+
+      // ============ Parent images ===========
+      const removedImageName: string[] = [];
+      if (removedImage.length) {
+        const ids: number[] = [];
+        removedImage.forEach((item) => {
+          ids.push(item.image_id);
+          removedImageName.push(item.image_name);
+        });
+        console.log({ ids });
+        await trx("product_image").whereIn("pi_id", ids).delete();
+      }
+
+      if (newImage.length) {
+        await trx("product_image").insert(newImage);
+      }
+
+      // ============== Color ================
+      if (addedColors.length) {
+        const colorImgArray = await Promise.all(
+          addedColors.map(async (colorId: number, colorIndex: number) => {
+            const checkColor = await trx("color")
+              .select("id")
+              .where({ id: colorId });
+            if (!checkColor.length) {
+              throw new Error("Invalid color id");
+            }
+
+            const colorPhotos = files.filter(
+              (file) => file.fieldname === `new_color_image_${colorIndex + 1}`
+            );
+            return colorPhotos.map((photo) => ({
+              p_id: id,
+              color_id: colorId,
+              image: photo.filename,
+            }));
+          })
+        );
+        if (colorImgArray.length) {
+          await trx("color_image").insert(colorImgArray);
+        }
+      }
+      // REMOVE COLOR PHOTO
+      if (removedColorPhotos.length) {
+        const checkColorPhotos = await trx("color_image")
+          .select("image")
+          .whereIn("id", removedColorPhotos as any)
+          .andWhere("p_id", id);
+        if (
+          !checkColorPhotos.length ||
+          (checkColorPhotos.length &&
+            checkColorPhotos.length !== removedColorPhotos.length)
+        ) {
+          return {
+            success: false,
+            message: "Invalid Color photo ids",
+          };
+        }
+        await trx("color_image")
+          .del()
+          .whereIn("id", removedColorPhotos)
+          .andWhere("p_id", id);
+        await this.manageFile.deleteFromStorage(
+          checkColorPhotos.map((item) => item.image)
+        );
+      }
+      // Remove colors and its photos
+      if (removedColors.length) {
+        const checkColors = await trx("p_color")
+          .select("id")
+          .whereIn("id", removedColors)
+          .andWhere("p_id", id);
+        if (
+          !checkColors.length ||
+          (checkColors.length && checkColors.length === removedColors.length)
+        ) {
+          return {
+            success: false,
+            message: "Invalid color ids",
+          };
+        }
+
+        const checkColorPhotos = await trx("color_image")
+          .select("image")
+          .whereIn("color_id", checkColors.map((c) => c.id) as number[]);
+        if (
+          !checkColorPhotos.length ||
+          checkColorPhotos.length !== removedColorPhotos.length
+        ) {
+          return {
+            success: false,
+            message: "Invalid Color photo ids",
+          };
+        }
+        await trx("color_image").del().whereIn("id", removedColorPhotos);
+        await this.manageFile.deleteFromStorage(
+          checkColorPhotos.map((cp) => cp.image)
+        );
+      }
+
+      // ==================== Sizes =================
+      // add size
+      if (addedSizes.length) {
+        const checkSizes = await trx("size")
+          .select("id")
+          .whereIn("id", addedSizes);
+
+        if (
+          !checkSizes.length ||
+          (checkSizes.length && checkSizes.length !== addedSizes.length)
+        ) {
+          return {
+            success: false,
+            message: "Invalid size ids",
+          };
+        }
+
+        await trx("p_size").insert(
+          addedSizes.map((s) => {
+            return {
+              p_id: id,
+              size_id: s.id,
+            };
+          })
+        );
+      }
+
+      // remove size
+
+      if (removedSizes.length) {
+        const checkSizes = await trx("size")
+          .select("id")
+          .whereIn("id", addedSizes);
+
+        if (
+          !checkSizes.length ||
+          (checkSizes.length && checkSizes.length !== addedSizes.length)
+        ) {
+          return {
+            success: false,
+            message: "Invalid size ids",
+          };
+        }
+        await trx("p_size")
+          .del()
+          .whereIn("size_id", removedSizes)
+          .andWhere("p_id", id);
+      }
+
+      if (Object.keys(rest).length !== 0) {
+        await trx("product").update(rest).where("p_id", id);
+      }
+
+      if (removedImage) {
+        await this.manageFile.deleteFromStorage(removedImageName);
+      }
+
+      return {
+        success: true,
+        data: {
+          images: newImage,
+        },
+        message: "Product updated!",
+      };
+    });
+  }
+
   public async getAllProduct(req: Request) {
     const {
       status,
@@ -441,22 +733,7 @@ class AdminProductService extends AdminAbstractServices {
     const { id } = req.params;
 
     const data = await this.db("product_view")
-      .select(
-        // "p_id",
-        // "p_name",
-        // "p_slug",
-        // "p_unit",
-        // "p_tags",
-        // "p_details",
-        // "p_status",
-        // "p_created_at",
-        // "available_stock",
-        // // "p_organic",
-        // // "p_attribute",
-        // "categories",
-        // "p_images"
-        "*"
-      )
+      .select("*")
       .where("p_id", id)
       .first();
 
@@ -467,34 +744,6 @@ class AdminProductService extends AdminAbstractServices {
       };
     }
 
-    // let pAttb = data[0]?.p_attribute;
-    // let pAttb2: any = [];
-
-    // for (let i = 0; i < pAttb?.length; i++) {
-    //   let found = false;
-    //   for (let j = 0; j < pAttb2.length; j++) {
-    //     if (pAttb2[j].a_name === pAttb[i].a_name) {
-    //       found = true;
-    //       pAttb2[j].ab_values.push({
-    //         av_id: pAttb[i].av_id,
-    //         av_value: pAttb[i].av_value,
-    //       });
-    //     }
-    //   }
-    //   if (!found) {
-    //     pAttb2.push({
-    //       a_name: pAttb[i].a_name,
-    //       ab_values: [
-    //         {
-    //           av_id: pAttb[i].av_id,
-    //           av_value: pAttb[i].av_value,
-    //         },
-    //       ],
-    //     });
-    //   }
-    // }
-    console.log(data);
-
     const { categories, p_images, ...rest } = data;
 
     console.log({ categories });
@@ -503,119 +752,6 @@ class AdminProductService extends AdminAbstractServices {
       success: true,
       data: { ...rest, categories, p_images },
     };
-  }
-
-  // update a product service
-  public async updateProduct(req: Request) {
-    const { id } = req.params;
-    const {
-      added_category,
-      removed_category,
-      added_av,
-      removed_av,
-      removed_image,
-      ...rest
-    } = req.body;
-
-    const addedCategory: number[] = added_category
-      ? JSON.parse(added_category)
-      : [];
-    const removedCategory: number[] = removed_category
-      ? JSON.parse(removed_category)
-      : [];
-    const addedAv: number[] = added_av ? JSON.parse(added_av) : [];
-    const removedAV: number[] = removed_av ? JSON.parse(removed_av) : [];
-    const removedImage: { image_id: number; image_name: string }[] =
-      removed_image ? JSON.parse(removed_image) : [];
-
-    console.log(req.body, "request body");
-
-    const checkProduct = await this.db("product")
-      .select("p_name")
-      .where({ p_id: id });
-
-    if (!checkProduct.length) {
-      return {
-        success: false,
-        message: "Product not found",
-      };
-    }
-
-    return await this.db.transaction(async (trx) => {
-      const files = (req.files as Express.Multer.File[]) || [];
-
-      const newImage: { pi_image: string; pi_p_id: number | string }[] = [];
-
-      files.forEach((item) => {
-        newImage.push({ pi_image: item.filename, pi_p_id: id });
-      });
-
-      if (removedCategory.length) {
-        await trx("product_category")
-          .whereIn("pc_cate_id", removedCategory)
-          .andWhere("pc_p_id", id)
-          .delete();
-      }
-
-      if (addedCategory.length) {
-        await trx("product_category").insert(
-          addedCategory.map((item: number) => {
-            return { pc_p_id: id, pc_cate_id: item };
-          })
-        );
-      }
-
-      if (removedAV.length) {
-        await trx("product_attribute")
-          .whereIn("pa_av_id", removedAV)
-          .andWhere("pa_p_id", id)
-          .delete();
-      }
-
-      if (addedAv.length) {
-        await trx("product_attribute").insert(
-          addedAv.map((item: number) => {
-            return { pa_p_id: id, pa_av_id: item };
-          })
-        );
-      }
-
-      const removedImageName: { filename: string; folder: string }[] = [];
-      if (removedImage.length) {
-        const ids: number[] = [];
-        removedImage.forEach((item) => {
-          ids.push(item.image_id);
-          removedImageName.push({
-            filename: item.image_name,
-            folder: "product_files",
-          });
-        });
-        console.log({ ids });
-        await trx("product_image").whereIn("pi_id", ids).delete();
-      }
-
-      if (newImage.length) {
-        await trx("product_image").insert(newImage);
-      }
-
-      // console.log({ rest });
-
-      if (Object.keys(rest).length !== 0) {
-        await trx("product").update(rest).where("p_id", id);
-      }
-
-      if (removedImage) {
-        await this.manageFile.deleteFromStorage(removedImageName);
-      }
-
-      return {
-        success: true,
-        data: {
-          images: newImage,
-        },
-        message: "Product udpated!",
-      };
-    });
   }
 
   // create a product category
@@ -798,9 +934,7 @@ class AdminProductService extends AdminAbstractServices {
     const res = await this.db("category").update(rest).where("cate_id", id);
     if (res) {
       if (files.length && checkCate[0].cate_image) {
-        await this.manageFile.deleteFromStorage([
-          { filename: checkCate[0].cate_image, folder: "product_category" },
-        ]);
+        await this.manageFile.deleteFromStorage(checkCate[0].cate_image);
       }
 
       return {

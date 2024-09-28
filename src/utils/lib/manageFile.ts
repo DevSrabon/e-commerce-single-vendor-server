@@ -10,7 +10,7 @@ class ManageFile extends CommonAbstractStorage {
   }
 
   // delete from storage
-  public deleteFromStorage = async (
+  public deleteFromStorageBYError = async (
     files: {
       filename: string;
       folder: string;
@@ -36,21 +36,28 @@ class ManageFile extends CommonAbstractStorage {
     }
   };
 
-  // delete file
-  public delete = async (dir: string, files: string | string[]) => {
-    console.log({ dir });
+  // delete from aws bucket
+  public deleteFromStorage = async (files: string[] | string) => {
     try {
-      if (typeof files === "string") {
-        const strPath = `${__dirname}/../../../uploads/${dir}/${files}`;
-        await fs.promises.unlink(strPath);
-      } else if (files && files.length >= 1) {
-        for (let i = 0; i < files.length; i++) {
-          const filename = files[i];
-          const path = `${__dirname}/../../../uploads/${dir}/${filename}`;
-          await fs.promises.unlink(path);
+      if (typeof files === "object") {
+        for await (const file of files) {
+          const deleteParams = {
+            Bucket: config.AWS_S3_BUCKET,
+            Key: `${ROOT_FOLDER}/${file}`,
+          };
+
+          await this.s3Client.send(new DeleteObjectCommand(deleteParams));
+          console.log("file deleted -> ", files);
         }
-      } else {
-        return;
+        console.log("All files has been deleted successfully");
+      } else if (typeof files === "string") {
+        const deleteParams = {
+          Bucket: config.AWS_S3_BUCKET,
+          Key: `${ROOT_FOLDER}/${files}`,
+        };
+
+        await this.s3Client.send(new DeleteObjectCommand(deleteParams));
+        console.log("file deleted -> ", files);
       }
     } catch (err) {
       console.log({ err });

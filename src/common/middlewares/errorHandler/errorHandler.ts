@@ -36,7 +36,7 @@ class ErrorHandler {
     const files = req.upFiles || [];
 
     if (files.length) {
-      await this.manageFile.deleteFromStorage(files);
+      await this.manageFile.deleteFromStorageBYError(files);
     }
     console.log({ err });
 
