@@ -17,11 +17,10 @@ class AdminStaffController extends AdminAbstractController {
       const data = await this.staffService.createStaffService(req);
 
       if (data.success) {
-        await this.commonService.createAuditTrailService(
-          "Staff has been created",
-          1,
-          6
-        );
+        await this.commonService.createAuditTrailService({
+          at_admin_id: req.user.au_id,
+          at_details: `Staff has been created: ${req.body.st_name}`,
+        });
 
         res.status(201).json(data);
       } else {
