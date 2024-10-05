@@ -7,16 +7,19 @@ class AdminProductValidator {
       // body("p_s_id", "Provide product supplier id")
       //   .exists({ checkFalsy: false })
       //   .isInt(),
+      body("p_name_en", "Provide product name in english")
+        .exists({ checkFalsy: false })
+        .isString(),
+      body("p_name_ar", "Provide product name in arabic")
+        .exists({ checkFalsy: false })
+        .isString(),
       body("colors", "Provide colors array").exists(),
       body("sizes", "Provide sizes array").exists(),
       body("variants", "Provide variants array").exists(),
-      body("p_name", "Provide product name")
+      body("p_details_en", "Provide product details in english")
         .exists({ checkFalsy: false })
         .isString(),
-      body("p_details", "Provide product details")
-        .exists({ checkFalsy: false })
-        .isString(),
-      body("p_name", "Provide product name")
+      body("p_details_ar", "Provide product details in arabic")
         .exists({ checkFalsy: false })
         .isString(),
       body("category.*", "Provide category array").isArray().notEmpty(),
@@ -34,7 +37,7 @@ class AdminProductValidator {
       body("cate_name_en", "Provide valid unique category name in english")
         .exists({ checkFalsy: false })
         .isString(),
-      body("cate_name_bn", "Provide valid category name in bangla")
+      body("cate_name_ar", "Provide valid category name in arabic")
         .exists({ checkFalsy: false })
         .isString(),
       body("cate_parent_id", "Provide valid parent id").isNumeric().optional(),
@@ -48,7 +51,7 @@ class AdminProductValidator {
         .exists({ checkFalsy: false })
         .isString()
         .optional(),
-      body("cate_name_bn", "Provide valid category name in bangla")
+      body("cate_name_ar", "Provide valid category name in arabic")
         .exists({ checkFalsy: false })
         .isString()
         .optional(),
@@ -98,7 +101,7 @@ class AdminProductValidator {
       body("ep_sale_price", "Provide sales price")
         .exists({ checkFalsy: false })
         .isDecimal(),
-      body("ep_details", "Provide e-product details").isString().optional(),
+      body("ep_details_en", "Provide e-product details").isString().optional(),
     ];
   }
 

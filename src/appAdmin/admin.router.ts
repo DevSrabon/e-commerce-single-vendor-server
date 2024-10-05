@@ -13,13 +13,15 @@ import AdminSupplierRouter from "./adminRouter/admin.supplier.router";
 import AdminTransferProductRouter from "./adminRouter/admin.transfer-product.router";
 import AdminWareHouseRouter from "./adminRouter/admin.warehouse.router";
 // import AdminAccountsRouter from './adminRouter/admin.accounts.router';
+import AdminAbstractRouter from "./adminAbstracts/admin.abstract.router";
 import AdminColorRouter from "./adminRouter/admin.color.router";
 import AdminInventoryRouter from "./adminRouter/admin.inventory.router";
+import AdminOfferRouter from "./adminRouter/admin.offer.router";
 import AdminProfileRouter from "./adminRouter/admin.profile.router";
 import AdminReportRouter from "./adminRouter/admin.report.router";
 import AdminSaleInvoiceRouter from "./adminRouter/admin.sale-invoice.router";
 
-class AdminRouter {
+class AdminRouter extends AdminAbstractRouter {
   public AdminRouter = Router();
   private adminAuthRouter = new AdminAuthRouter();
   private adminProfileRouter = new AdminProfileRouter();
@@ -39,13 +41,18 @@ class AdminRouter {
   private adminInventory = new AdminInventoryRouter();
   private adminSaleInvoice = new AdminSaleInvoiceRouter();
   private adminReport = new AdminReportRouter();
+  private adminOffer = new AdminOfferRouter();
 
   constructor() {
+    super();
     this.callRouter();
   }
 
   private callRouter() {
     this.AdminRouter.use("/auth", this.adminAuthRouter.router);
+    // ====== Admin Auth middleware =====
+    this.AdminRouter.use(this.authChecker.authChecker);
+    // =========================
     this.AdminRouter.use("/profile", this.adminProfileRouter.router);
     this.AdminRouter.use("/products", this.adminProductRouter.router);
     this.AdminRouter.use("/address", this.addressRouter.router);
@@ -64,6 +71,7 @@ class AdminRouter {
     this.AdminRouter.use("/inventory", this.adminInventory.router);
     this.AdminRouter.use("/sale-invoice", this.adminSaleInvoice.router);
     this.AdminRouter.use("/report", this.adminReport.reportRouter);
+    this.AdminRouter.use("/offer", this.adminOffer.router);
   }
 }
 export default AdminRouter;

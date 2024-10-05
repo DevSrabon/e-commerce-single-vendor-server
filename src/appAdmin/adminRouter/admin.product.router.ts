@@ -1,5 +1,5 @@
-import AdminProductController from '../adminController/admin.product.controller';
-import AdminAbstractRouter from '../adminAbstracts/admin.abstract.router';
+import AdminAbstractRouter from "../adminAbstracts/admin.abstract.router";
+import AdminProductController from "../adminController/admin.product.controller";
 
 class AdminProductRouter extends AdminAbstractRouter {
   private productController = new AdminProductController();
@@ -11,9 +11,9 @@ class AdminProductRouter extends AdminAbstractRouter {
   private callrouter() {
     // create product and get product by status or all
     this.router
-      .route('/')
+      .route("/")
       .post(
-        this.uploader.storageUploadRaw('product_files'),
+        this.uploader.storageUploadRaw("product_files"),
         this.productValidator.createProductValidator(),
         this.productController.createProductController
       )
@@ -21,27 +21,27 @@ class AdminProductRouter extends AdminAbstractRouter {
 
     // get all product which has not include in ecommerce
     this.router
-      .route('/not-include-ecommerce')
+      .route("/not-include-ecommerce")
       .get(this.productController.getProductNotInEcommerceController);
 
     // get all product by supplier id
     this.router
-      .route('/by/:supplierId')
+      .route("/by/:supplierId")
       .get(
         this.commonValidator.singleParamInputValidator(
-          'supplierId',
-          'Provide valid supplier id'
+          "supplierId",
+          "Provide valid supplier id"
         ),
         this.productController.getAllProductBySupplierController
       );
 
     // get attribute by single product
     this.router
-      .route('/attributes/by/:productId')
+      .route("/attributes/by/:productId")
       .get(
         this.commonValidator.singleParamInputValidator(
-          'productId',
-          'Provide valid product id'
+          "productId",
+          "Provide valid product id"
         ),
         this.productController.getAttributesByProductController
       );
@@ -50,9 +50,9 @@ class AdminProductRouter extends AdminAbstractRouter {
 
     // create category and get category
     this.router
-      .route('/categories')
+      .route("/categories")
       .post(
-        this.uploader.storageUploadRaw('product_category'),
+        this.uploader.storageUploadRaw("product_category"),
         this.productValidator.createCategoryValidator(),
         this.productController.createCategoryController
       )
@@ -60,9 +60,9 @@ class AdminProductRouter extends AdminAbstractRouter {
 
     // get single or update category
     this.router
-      .route('/categories/:id')
+      .route("/categories/:id")
       .patch(
-        this.uploader.storageUploadRaw('product_category'),
+        this.uploader.storageUploadRaw("product_category"),
         this.commonValidator.commonSingleIdInParamsValidator(),
         this.productValidator.updateCategoryValidator(),
         this.productController.updateCategoryController
@@ -73,20 +73,20 @@ class AdminProductRouter extends AdminAbstractRouter {
 
     // get single product and update a single product
     this.router
-      .route('/:id')
+      .route("/:id")
       .get(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide product id'
+          "id",
+          "Provide product id"
         ),
         this.productController.getSingleProductController
       )
       .patch(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide product id'
+          "id",
+          "Provide product id"
         ),
-        this.uploader.storageUploadRaw('product_files'),
+        this.uploader.storageUploadRaw("product_files"),
         this.productController.updateProductController
       );
   }

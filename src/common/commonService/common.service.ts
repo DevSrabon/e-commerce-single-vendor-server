@@ -1,7 +1,7 @@
-import CommonAbstractServices from "../commonAbstract/common.abstract.service";
-import Lib from "../../utils/lib/lib";
-import config from "../../utils/config/config";
 import { IEcommCustomer } from "../../appEcommerce/ecommUtils/ecommTypes/ecommCustomerTypes";
+import config from "../../utils/config/config";
+import Lib from "../../utils/lib/lib";
+import CommonAbstractServices from "../commonAbstract/common.abstract.service";
 
 class CommonService extends CommonAbstractServices {
   constructor() {
@@ -159,11 +159,15 @@ class CommonService extends CommonAbstractServices {
   }
 
   // create audit trail service
-  public async createAuditTrailService(
-    at_details: string,
-    at_status: number,
-    at_admin_id: number
-  ) {
+  public async createAuditTrailService({
+    at_details,
+    at_status = 1,
+    at_admin_id,
+  }: {
+    at_details: string;
+    at_status?: number;
+    at_admin_id: number;
+  }) {
     const res = await this.db("audit_trail").insert({
       at_details,
       at_status,

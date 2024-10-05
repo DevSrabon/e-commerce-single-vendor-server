@@ -110,15 +110,13 @@ class Lib {
   public static stringToSlug(str: string) {
     // Remove any leading or trailing whitespace
     str = str.trim();
-
+    // Convert to lowercase
+    str = str.toLowerCase();
     // Replace spaces with dashes
     str = str.replace(/\s+/g, "-");
 
     // Remove special characters, Bangla script characters included
     str = str.replace(/[^\u0980-\u09FFa-z0-9-]/g, "");
-
-    // Convert to lowercase
-    str = str.toLowerCase();
 
     return str;
   }
@@ -139,7 +137,7 @@ class Lib {
     const sku = `${namePart}-${categoryPart}-${productId}`;
 
     // 2. Generate QR Code
-    const qrCodeFileName = `product_files/barcode/qrCode-${Date.now()}.png`;
+    const qrCodeFileName = `product_files/qrcode/qrCode-${Date.now()}.png`;
     const qrCodeData = await this.generateQRCode(
       `${CLIENT_URL}/products/${productName}`,
       qrCodeFileName

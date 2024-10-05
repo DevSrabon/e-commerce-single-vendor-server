@@ -5,6 +5,8 @@ interface IProductVariants {
   id: number;
   fabric_id: number;
   price: number;
+  discount: number;
+  discount_type: "fixed" | "percentage";
   is_default?: boolean;
 }
 interface IColor {
@@ -41,9 +43,11 @@ class AdminProductService extends AdminAbstractServices {
     const {
       w_id,
       store_id,
-      p_name,
+      p_name_en,
+      p_name_ar,
       p_tags,
-      p_details,
+      p_details_en,
+      p_details_ar,
       category,
       colors,
       sizes,
@@ -62,8 +66,9 @@ class AdminProductService extends AdminAbstractServices {
     }
 
     const checkProduct = await this.db("product")
-      .select("p_name")
-      .where({ p_name });
+      .select("p_name_en", "p_name_ar")
+      .where({ p_name_en })
+      .orWhere({ p_name_ar });
 
     if (checkProduct.length) {
       return {
@@ -107,16 +112,25 @@ class AdminProductService extends AdminAbstractServices {
           message: "No store found",
         };
       }
-      const p_slug = Lib.stringToSlug(p_name);
+      let p_slug = Lib.stringToSlug(p_name_en);
+
+      const checkSlug = await trx("product").select("p_slug").where({
+        p_slug,
+      });
+      if (checkSlug.length) {
+        p_slug = `${p_slug}-${checkSlug.length + 1}`;
+      }
 
       // Insert product
       const productRes = await trx("product").insert({
         w_id,
         store_id,
-        p_name,
+        p_name_en,
+        p_name_ar,
         p_slug,
         p_tags,
-        p_details,
+        p_details_en,
+        p_details_ar,
         p_unit,
         is_featured: 0,
       });
@@ -239,6 +253,7 @@ class AdminProductService extends AdminAbstractServices {
       // Insert inventory
       await trx("inventory").insert({
         i_w_id: w_id,
+        i_s_id: store_id,
         i_p_id: productId,
         i_quantity_available: p_unit,
       });
@@ -259,6 +274,8 @@ class AdminProductService extends AdminAbstractServices {
             p_id: productId,
             fabric_id: el.id,
             price: el.price,
+            discount: el.discount,
+            discount_type: el.discount_type,
           };
         })
       );
@@ -282,6 +299,9 @@ class AdminProductService extends AdminAbstractServices {
       return {
         success: true,
         message: "Product created successfully",
+        data: {
+          id: productId,
+        },
       };
     });
   }
@@ -295,7 +315,6 @@ class AdminProductService extends AdminAbstractServices {
       removed_image,
       added_variants,
       edit_variants,
-      delete_variants,
       removed_variants,
       added_colors,
       removed_colors,
@@ -317,8 +336,9 @@ class AdminProductService extends AdminAbstractServices {
     const removeVariants: number[] = removed_variants
       ? JSON.parse(removed_variants)
       : [];
-    const removedImage: { image_id: number; image_name: string }[] =
-      removed_image ? JSON.parse(removed_image) : [];
+    const removedImage: number[] = removed_image
+      ? JSON.parse(removed_image)
+      : [];
 
     const editVariants: IProductVariants[] = edit_variants
       ? JSON.parse(edit_variants)
@@ -331,14 +351,14 @@ class AdminProductService extends AdminAbstractServices {
     const removedColors: number[] = removed_colors
       ? JSON.parse(removed_colors)
       : [];
-    const addedSizes: ISize[] = added_sizes ? JSON.parse(added_sizes) : [];
+    const addedSizes: number[] = added_sizes ? JSON.parse(added_sizes) : [];
     const removedSizes: number[] = removed_sizes
       ? JSON.parse(removed_sizes)
       : [];
     console.log(req.body, "request body");
 
     const checkProduct = await this.db("product")
-      .select("p_name")
+      .select("p_name_en")
       .where({ p_id: id });
 
     if (!checkProduct.length) {
@@ -378,7 +398,17 @@ class AdminProductService extends AdminAbstractServices {
       //  ========== Variants ==============
 
       if (removeVariants.length) {
-        await trx("product_variant")
+        const checkVariant = await trx("variant_product")
+          .select("id")
+          .whereIn("id", removeVariants)
+          .andWhere("p_id", id);
+        if (!checkVariant.length) {
+          return {
+            success: false,
+            message: "Variant not found",
+          };
+        }
+        await trx("variant_product")
           .whereIn("id", removeVariants)
           .andWhere("p_id", id)
           .delete();
@@ -396,41 +426,67 @@ class AdminProductService extends AdminAbstractServices {
           throw new Error("Invalid fabric id");
         }
 
-        await trx("product_variant").insert(
+        const checkVariant = await trx("variant_product")
+          .select("id")
+          .whereIn(
+            "fabric_id",
+            addedVariants.map((el: IProductVariants) => el.id)
+          )
+          .andWhere("p_id", id);
+
+        if (checkVariant.length) {
+          return {
+            success: false,
+            message: "Variant already exist",
+          };
+        }
+
+        await trx("variant_product").insert(
           addedVariants.map((el: IProductVariants) => {
-            return { p_id: id, fabric_id: el.fabric_id, price: el.price };
+            return { p_id: id, fabric_id: el.id, price: el.price };
           })
         );
       }
 
       if (editVariants.length) {
-        editVariants.forEach(async (el) => {
-          const checkVariant = await trx("product_variant")
+        for (const el of editVariants) {
+          const checkVariant = await trx("variant_product")
             .select("id")
-            .where({ id: el.id });
+            .where({ id: el.id })
+            .andWhere("p_id", id);
+
           if (!checkVariant.length) {
             throw new Error("Invalid variant id");
           }
+
           const checkFabric = await trx("fabric")
             .select("id")
             .where({ id: el.fabric_id });
           if (!checkFabric.length) {
             throw new Error("Invalid fabric id");
           }
-          await trx("product_variant").update(el).where({ id: el.id });
-        });
+
+          await trx("variant_product").update(el).where({ id: el.id });
+        }
       }
 
       // ============ Parent images ===========
       const removedImageName: string[] = [];
       if (removedImage.length) {
-        const ids: number[] = [];
-        removedImage.forEach((item) => {
-          ids.push(item.image_id);
-          removedImageName.push(item.image_name);
-        });
-        console.log({ ids });
-        await trx("product_image").whereIn("pi_id", ids).delete();
+        const checkImage = await trx("product_image")
+          .select("pi_image")
+          .whereIn("pi_id", removedImage)
+          .andWhere("pi_p_id", id);
+        if (!checkImage.length) {
+          throw new Error("Invalid image id");
+        }
+
+        removedImageName.push(...checkImage.map((item) => item.pi_image));
+
+        await trx("product_image")
+          .whereIn("pi_id", removedImage)
+          .andWhere("pi_p_id", id)
+          .delete();
       }
 
       if (newImage.length) {
@@ -462,6 +518,7 @@ class AdminProductService extends AdminAbstractServices {
           await trx("color_image").insert(colorImgArray);
         }
       }
+
       // REMOVE COLOR PHOTO
       if (removedColorPhotos.length) {
         const checkColorPhotos = await trx("color_image")
@@ -537,11 +594,20 @@ class AdminProductService extends AdminAbstractServices {
           };
         }
 
+        const checkSizeExists = await trx("p_size")
+          .whereIn("size_id", addedSizes)
+          .andWhere("p_id", id);
+        if (checkSizeExists.length) {
+          return {
+            success: false,
+            message: "Size already exists",
+          };
+        }
         await trx("p_size").insert(
           addedSizes.map((s) => {
             return {
               p_id: id,
-              size_id: s.id,
+              size_id: s,
             };
           })
         );
@@ -552,15 +618,25 @@ class AdminProductService extends AdminAbstractServices {
       if (removedSizes.length) {
         const checkSizes = await trx("size")
           .select("id")
-          .whereIn("id", addedSizes);
+          .whereIn("id", removedSizes);
 
         if (
           !checkSizes.length ||
-          (checkSizes.length && checkSizes.length !== addedSizes.length)
+          (checkSizes.length && checkSizes.length !== removedSizes.length)
         ) {
           return {
             success: false,
             message: "Invalid size ids",
+          };
+        }
+        const checkSizeExists = await trx("p_size")
+          .select("*")
+          .whereIn("size_id", removedSizes)
+          .andWhere("p_id", id);
+        if (!checkSizeExists.length) {
+          return {
+            success: false,
+            message: "Size not found in this product",
           };
         }
         await trx("p_size")
@@ -575,6 +651,37 @@ class AdminProductService extends AdminAbstractServices {
 
       if (removedImage) {
         await this.manageFile.deleteFromStorage(removedImageName);
+      }
+
+      if (rest.p_name_en || rest.p_name_ar) {
+        const checkProduct = await this.db("product")
+          .select("p_name_en", "p_name_ar")
+          .join("product_category", "pc_p_id", "p_id")
+          .where((qb) => {
+            if (rest.p_name_en) {
+              qb.where("p_name_en", rest.p_name_en);
+            }
+            if (rest.p_name_ar) {
+              qb.orWhere("p_name_ar", rest.p_name_ar);
+            }
+          });
+
+        if (checkProduct.length) {
+          return {
+            success: false,
+            message: "Product name already exists",
+          };
+        }
+        if (rest.p_name_en) {
+          const p_slug = Lib.stringToSlug(rest.p_name_en);
+          await trx("product")
+            .update({ p_slug, p_name_en: rest.p_name_en })
+            .where("p_id", id);
+        } else {
+          await trx("product")
+            .update({ p_name_ar: rest.p_name_ar })
+            .where("p_id", id);
+        }
       }
 
       return {
@@ -593,7 +700,8 @@ class AdminProductService extends AdminAbstractServices {
       cate_id,
       from_date,
       to_date,
-      p_name,
+      p_name_en,
+      p_name_ar,
       limit,
       skip,
       order_by = "p_id",
@@ -612,7 +720,7 @@ class AdminProductService extends AdminAbstractServices {
     }
 
     const data = await dtbs
-      .select("p_id", "p_name", "p_status", "categories")
+      .select("p_id", "p_name_en", "p_name_ar", "p_status", "categories")
       .where(function () {
         if (status) {
           this.andWhere("p_status", status);
@@ -624,8 +732,8 @@ class AdminProductService extends AdminAbstractServices {
           ]);
         }
 
-        if (p_name) {
-          this.andWhere("p_name", "like", `%${p_name}%`);
+        if (p_name_en) {
+          this.andWhere("p_name_en", "like", `%${p_name_en}%`);
         }
 
         if (from_date && to_date) {
@@ -645,8 +753,8 @@ class AdminProductService extends AdminAbstractServices {
             `{"cate_id":${cate_id}}`,
           ]);
         }
-        if (p_name) {
-          this.andWhere("p_name", "like", `%${p_name}%`);
+        if (p_name_en) {
+          this.andWhere("p_name_en", "like", `%${p_name_en}%`);
         }
         if (from_date && to_date) {
           this.whereBetween("p_created_at", [from_date as string, endDate]);
@@ -733,7 +841,7 @@ class AdminProductService extends AdminAbstractServices {
 
   // create a product category
   public async createCategory(req: Request) {
-    const { cate_name_en, cate_name_bn, cate_parent_id } = req.body;
+    const { cate_name_en, cate_name_ar, cate_parent_id } = req.body;
 
     const check = await this.db("category")
       .select("cate_id")
@@ -758,7 +866,7 @@ class AdminProductService extends AdminAbstractServices {
     const res = await this.db("category").insert({
       cate_name_en,
       cate_parent_id,
-      cate_name_bn,
+      cate_name_ar,
       cate_slug: Lib.stringToSlug(cate_name_en),
       cate_image: files[0].filename,
     });
@@ -770,7 +878,7 @@ class AdminProductService extends AdminAbstractServices {
           cate_id: res[0],
           cate_name_en,
           cate_parent_id,
-          cate_name_bn,
+          cate_name_ar,
           cate_slug: Lib.stringToSlug(cate_name_en),
           cate_image: files[0].filename,
         },
@@ -806,7 +914,7 @@ class AdminProductService extends AdminAbstractServices {
       .select(
         "cate_id",
         "cate_name_en",
-        "cate_name_bn",
+        "cate_name_ar",
         "cate_status",
         "cate_image",
         "cate_slug",
@@ -839,7 +947,7 @@ class AdminProductService extends AdminAbstractServices {
     const categories = category.map((item: any) => ({
       id: item.cate_id,
       cate_name_en: item.cate_name_en,
-      cate_name_bn: item.cate_name_bn,
+      cate_name_ar: item.cate_name_ar,
       cate_status: item.cate_status,
       cate_image: item.cate_image,
       parentId: item.cate_parent_id,

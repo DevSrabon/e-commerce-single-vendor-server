@@ -1,5 +1,5 @@
-import { Request } from 'express';
-import EcommAbstractServices from '../ecommAbstracts/ecomm.abstract.service';
+import { Request } from "express";
+import EcommAbstractServices from "../ecommAbstracts/ecomm.abstract.service";
 
 class EcommCategoryService extends EcommAbstractServices {
   constructor() {
@@ -13,12 +13,12 @@ class EcommCategoryService extends EcommAbstractServices {
       parent,
       limit,
       skip = 0,
-      order_by = 'cate_name_en',
-      according_order = 'asc',
+      order_by = "cate_name_en",
+      according_order = "asc",
       cate_name_en,
     } = req.query;
 
-    const dtbs = this.db('category');
+    const dtbs = this.db("category");
 
     if (limit) {
       dtbs.limit(parseInt(limit as string));
@@ -26,32 +26,32 @@ class EcommCategoryService extends EcommAbstractServices {
 
     const category = await dtbs
       .select(
-        'cate_id',
-        'cate_name_en',
-        'cate_name_bn',
-        'cate_status',
-        'cate_image',
-        'cate_slug',
-        'cate_parent_id'
+        "cate_id",
+        "cate_name_en",
+        "cate_name_ar",
+        "cate_status",
+        "cate_image",
+        "cate_slug",
+        "cate_parent_id"
       )
       .where(function () {
         if (cate_name_en) {
-          this.where('cate_name_en', 'like', `%${cate_name_en}%`);
+          this.where("cate_name_en", "like", `%${cate_name_en}%`);
         }
         if (status && parent) {
-          this.andWhere('cate_status', status);
-          if (parent === 'null') {
-            this.andWhere('cate_parent_id', null);
+          this.andWhere("cate_status", status);
+          if (parent === "null") {
+            this.andWhere("cate_parent_id", null);
           } else {
-            this.andWhere('cate_parent_id', parent);
+            this.andWhere("cate_parent_id", parent);
           }
         } else if (status) {
-          this.where('cate_status', status);
+          this.where("cate_status", status);
         } else if (parent) {
-          if (parent === 'null') {
-            this.andWhere('cate_parent_id', null);
+          if (parent === "null") {
+            this.andWhere("cate_parent_id", null);
           } else {
-            this.andWhere('cate_parent_id', parent);
+            this.andWhere("cate_parent_id", parent);
           }
         }
       })
@@ -61,7 +61,7 @@ class EcommCategoryService extends EcommAbstractServices {
     const categories = category.map((item: any) => ({
       id: item.cate_id,
       cate_name_en: item.cate_name_en,
-      cate_name_bn: item.cate_name_bn,
+      cate_name_ar: item.cate_name_ar,
       cate_slug: item.cate_slug,
       cate_status: item.cate_status,
       cate_image: item.cate_image,

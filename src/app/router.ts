@@ -1,7 +1,8 @@
-import { Router } from 'express';
-import AdminRouter from '../appAdmin/admin.router';
-import CommonRouter from '../common/commonRouter/common.router';
-import EcommRouter from '../appEcommerce/ecomm.router';
+import { Router } from "express";
+import AdminRouter from "../appAdmin/admin.router";
+import EcommRouter from "../appEcommerce/ecomm.router";
+import CommonRouter from "../common/commonRouter/common.router";
+import AdminAuthChecker from "../common/middlewares/authChecker/adminAuthChecker";
 
 class RootRouter {
   public v1Router = Router();
@@ -13,9 +14,9 @@ class RootRouter {
   }
 
   private callV1Router() {
-    this.v1Router.use('/common', this.commonRouter.router);
-    this.v1Router.use('/admin', this.adminRouter.AdminRouter);
-    this.v1Router.use('/ecomm', this.ecommrouter.EcommRouter);
+    this.v1Router.use("/common", this.commonRouter.router);
+    this.v1Router.use("/admin", this.adminRouter.AdminRouter);
+    this.v1Router.use("/ecomm", this.ecommrouter.EcommRouter);
   }
 }
 
