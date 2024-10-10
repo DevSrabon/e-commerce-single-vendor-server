@@ -10,6 +10,33 @@ class AdminAddressValidator {
     ];
   }
 
+  public createCountryInputValidator() {
+    return [
+      body("c_name_en", "Provide valid country name in english")
+        .exists()
+        .isString(),
+      body("c_name_ar", "Provide valid country name in arabic")
+        .exists()
+        .isString(),
+      body("c_short_name", "Provide valid country short name")
+        .exists()
+        .isString(),
+    ];
+  }
+  public updateCountryInputValidator() {
+    return [
+      body("c_name_en", "Provide valid country name in english")
+        .optional()
+        .isString(),
+      body("c_name_ar", "Provide valid country name in arabic")
+        .optional()
+        .isString(),
+      body("c_short_name", "Provide valid country short name")
+        .optional()
+        .isString(),
+    ];
+  }
+
   // get all area by sub city input validator
   public getAllAreaBySubCityValidator() {
     return [

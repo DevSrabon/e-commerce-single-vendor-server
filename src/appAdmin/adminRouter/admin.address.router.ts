@@ -10,7 +10,32 @@ class AdminAddressRouter extends AdminAbstractRouter {
 
   private callRouter() {
     // get all countries
-    this.router.route("/country").get(this.addressController.getAllCountries);
+    this.router
+      .route("/country")
+      .get(this.addressController.getAllCountries)
+      .post(
+        this.addressValidator.createCountryInputValidator(),
+        this.addressController.createCountry
+      );
+
+    // update country
+    this.router
+      .route("/country/:id")
+      .patch(
+        this.addressValidator.updateCountryInputValidator(),
+        this.commonValidator.singleStringParamValidator(
+          "id",
+          "Provide country id"
+        ),
+        this.addressController.updateCountry
+      )
+      .delete(
+        this.commonValidator.singleStringParamValidator(
+          "id",
+          "Provide country id"
+        ),
+        this.addressController.deleteCountry
+      );
     // get province router
     this.router.route("/province").get(this.addressController.getAllProvince);
     // get cities router

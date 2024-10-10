@@ -8,11 +8,104 @@ class AdminAddressService extends AdminAbstractServices {
 
   // get all Countries
   public async getAllCountries(req: Request) {
+    const {
+      status,
+      searchParams,
+      sortBy = "c_name_en",
+      orderBy = "asc",
+    } = req.query;
     const data = await this.db("country")
       .select("c_id", "c_name_en", "c_name_ar", "c_short_name", "status")
-      .where({ status: 1 });
+      .where(function () {
+        if (status) this.where("status", status);
+        if (searchParams) {
+          this.where("c_name_en", "like", `%${searchParams}%`)
+            .orWhere("c_name_ar", "like", `%${searchParams}%`)
+            .orWhere("c_short_name", "like", `%${searchParams}%`);
+        }
+      })
+      .orderBy(sortBy as string, orderBy as string);
     return {
       success: true,
+      data,
+    };
+  }
+
+  public async createCountry(req: Request) {
+    const { c_name_en, c_name_ar, c_short_name } = req.body;
+    const checkCountry = await this.db("country")
+      .select("c_id")
+      .where(function () {
+        this.where("c_name_en", c_name_en)
+          .orWhere("c_name_ar", c_name_ar)
+          .orWhere("c_short_name", c_short_name);
+      });
+    if (checkCountry.length) {
+      return {
+        success: false,
+        message: "Already have country with this name",
+      };
+    }
+    const data = await this.db("country").insert(req.body);
+    return {
+      success: true,
+      message: "Country created successfully",
+      data,
+    };
+  }
+
+  public async updateCountry(req: Request) {
+    const { id } = req.params;
+    const { c_name_en, c_name_ar, c_short_name } = req.body;
+    const checkCountry = await this.db("country")
+      .select("*")
+      .where({ c_id: id });
+    if (!checkCountry.length) {
+      return {
+        success: false,
+        message: "Country not found with this id",
+      };
+    }
+    if (c_name_en || c_name_ar || c_short_name) {
+      const isExist = await this.db("country")
+        .select("c_id")
+        .where(function () {
+          if (c_name_en) this.where("c_name_en", c_name_en);
+          if (c_name_ar) this.where("c_name_ar", c_name_ar);
+          if (c_short_name) this.where("c_short_name", c_short_name);
+        });
+
+      if (isExist.length) {
+        return {
+          success: false,
+          message: "Already have country with this name",
+        };
+      }
+    }
+    const data = await this.db("country").where("c_id", id).update(req.body);
+    return {
+      success: true,
+      message: "Country updated successfully",
+      data,
+    };
+  }
+
+  // Delete Country
+  public async deleteCountry(req: Request) {
+    const { id } = req.params;
+    const checkCountry = await this.db("country")
+      .select("*")
+      .where({ c_id: id });
+    if (!checkCountry.length) {
+      return {
+        success: false,
+        message: "Country not found with this id",
+      };
+    }
+    const data = await this.db("country").where("c_id", id).del();
+    return {
+      success: true,
+      message: "Country deleted successfully",
       data,
     };
   }

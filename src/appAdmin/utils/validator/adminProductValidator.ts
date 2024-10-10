@@ -4,9 +4,7 @@ class AdminProductValidator {
   // create product validator
   public createProductValidator() {
     return [
-      // body("p_s_id", "Provide product supplier id")
-      //   .exists({ checkFalsy: false })
-      //   .isInt(),
+      body("w_id", "Provide store id").exists({ checkFalsy: false }),
       body("p_name_en", "Provide product name in english")
         .exists({ checkFalsy: false })
         .isString(),
@@ -154,16 +152,20 @@ class AdminProductValidator {
   // ============ product attribute validator ============//
   public createColorValidator() {
     return [
-      body("color", "Provide color color").exists().isString(),
+      body("color_en", "Provide color in english").exists().isString(),
+      body("color_ar", "Provide color in arabic").exists().isString(),
       body("code", "Provide color code").exists().isString(),
-      body("details", "Provide color details").optional(),
+      body("details_en", "Provide color details").optional(),
+      body("details_ar", "Provide color details").optional(),
     ];
   }
   public updateColorValidator() {
     return [
-      body("color", "Provide color color").optional(),
+      body("color_en", "Provide color in english").optional().isString(),
+      body("color_ar", "Provide color in arabic").optional().isString(),
       body("code", "Provide color code").optional(),
-      body("details", "Provide color details").optional(),
+      body("details_en", "Provide color details").optional(),
+      body("details_ar", "Provide color details").optional(),
       body("p_id", "Provide product id").isInt().optional(),
       body("is_active", "Provide color status").isIn(["0", "1"]).optional(),
     ];
@@ -175,6 +177,17 @@ class AdminProductValidator {
       query("is_active", "Provide color status").isIn(["0", "1"]).optional(),
       query("limit", "Provide limit").isInt().optional(),
       query("skip", "Provide skip").isInt().optional(),
+      query("sortBy", "Provide sortBy")
+        .optional()
+        .notEmpty()
+        .withMessage("sortBy cannot be empty"),
+
+      query("sortOrder", "Provide sortOrder")
+        .optional()
+        .isIn(["asc", "desc"])
+        .withMessage("Invalid sortOrder value")
+        .notEmpty()
+        .withMessage("sortOrder cannot be empty"),
     ];
   }
 
@@ -271,19 +284,32 @@ class AdminProductValidator {
   // Validator for creating a new fabric
   public createFabricValidator() {
     return [
-      body("name")
+      body("name_en")
         .notEmpty()
-        .withMessage("Fabric name is required")
+        .withMessage("Fabric name in English is required")
         .isString()
-        .withMessage("Fabric name must be a string")
+        .withMessage("Fabric name in English must be a string")
         .isLength({ max: 255 })
         .withMessage("Fabric name cannot exceed 255 characters"),
-      body("details")
+      body("name_ar")
+        .notEmpty()
+        .withMessage("Fabric name in Arabic is required")
+        .isString()
+        .withMessage("Fabric name in Arabic must be a string")
+        .isLength({ max: 255 })
+        .withMessage("Fabric name cannot exceed 255 characters"),
+      body("details_en")
         .optional()
         .isString()
-        .withMessage("Details must be a string")
+        .withMessage("Details in English must be a string")
         .isLength({ max: 555 })
-        .withMessage("Details cannot exceed 555 characters"),
+        .withMessage("Details in English cannot exceed 555 characters"),
+      body("details_ar")
+        .optional()
+        .isString()
+        .withMessage("Details in Arabic must be a string")
+        .isLength({ max: 555 })
+        .withMessage("Details in Arabic cannot exceed 555 characters"),
       body("is_active")
         .optional()
         .isBoolean()
@@ -302,7 +328,23 @@ class AdminProductValidator {
         .optional()
         .isInt({ min: 0 })
         .withMessage("Page must be a non-negative integer"),
-      query("name").optional().isString().withMessage("Name must be a string"),
+      query("name_en")
+        .notEmpty()
+        .withMessage("Fabric name in English is required")
+        .isString()
+        .optional()
+        .withMessage("Fabric name in English must be a string")
+        .isLength({ max: 255 })
+        .withMessage("Fabric name cannot exceed 255 characters"),
+      query("name_ar")
+        .notEmpty()
+        .optional()
+        .withMessage("Fabric name in Arabic is required")
+        .isString()
+        .optional()
+        .withMessage("Fabric name in Arabic must be a string")
+        .isLength({ max: 255 })
+        .withMessage("Fabric name cannot exceed 255 characters"),
       query("is_active")
         .optional()
         .isBoolean()
@@ -313,18 +355,35 @@ class AdminProductValidator {
   // Validator for updating a fabric
   public updateFabricValidator() {
     return [
-      body("name")
-        .optional()
+      body("name_en")
+        .notEmpty()
+        .withMessage("Fabric name in English is required")
         .isString()
-        .withMessage("Fabric name must be a string")
+        .optional()
+        .withMessage("Fabric name in English must be a string")
         .isLength({ max: 255 })
         .withMessage("Fabric name cannot exceed 255 characters"),
-      body("details")
+      body("name_ar")
+        .notEmpty()
+        .optional()
+        .withMessage("Fabric name in Arabic is required")
+        .isString()
+        .optional()
+        .withMessage("Fabric name in Arabic must be a string")
+        .isLength({ max: 255 })
+        .withMessage("Fabric name cannot exceed 255 characters"),
+      body("details_en")
         .optional()
         .isString()
-        .withMessage("Details must be a string")
+        .withMessage("Details in English must be a string")
         .isLength({ max: 555 })
-        .withMessage("Details cannot exceed 555 characters"),
+        .withMessage("Details in English cannot exceed 555 characters"),
+      body("details_ar")
+        .optional()
+        .isString()
+        .withMessage("Details in Arabic must be a string")
+        .isLength({ max: 555 })
+        .withMessage("Details in Arabic cannot exceed 555 characters"),
       body("is_active")
         .optional()
         .isBoolean()

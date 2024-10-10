@@ -11,10 +11,9 @@ class AdminWareHouseService extends AdminAbstractServices {
   public async createWarehouseService(req: Request) {
     const { w_name, type } = req.body;
     const { au_id } = req.user;
-    const checkWarehouse = await this.db("location")
+    const checkWarehouse = await this.db("warehouse")
       .select("w_name")
-      .where({ w_name })
-      .andWhere({ type });
+      .where({ w_name });
 
     if (checkWarehouse.length) {
       return {
@@ -23,15 +22,14 @@ class AdminWareHouseService extends AdminAbstractServices {
       };
     }
 
-    const res = await this.db("location").insert({
+    const res = await this.db("warehouse").insert({
       ...req.body,
-      created_by: au_id,
     });
 
     if (res.length) {
       return {
         success: true,
-        message: "location has been created",
+        message: "warehouse has been created",
       };
     } else {
       return {
@@ -48,11 +46,11 @@ class AdminWareHouseService extends AdminAbstractServices {
       limit,
       type,
       skip,
-      order_by = "created_at",
+      order_by = "w_id",
       according_order = "asc",
     } = req.query;
 
-    const dtbs = this.db("location AS w");
+    const dtbs = this.db("warehouse AS w");
 
     if (limit) {
       dtbs.limit(parseInt(limit as string));
@@ -62,26 +60,20 @@ class AdminWareHouseService extends AdminAbstractServices {
     }
 
     const data = await dtbs
-      .select("w.*", "u.au_name as created_by_name")
-      .join("admin_user AS u", "w.created_by", "u.au_id")
+      .select("w.*")
+
       .where(function () {
         if (w_name) {
           this.andWhere("w_name", "Like", `%${w_name}%`);
-        }
-        if (type) {
-          this.andWhere("type", type);
         }
       })
       .orderBy(order_by as string, according_order as string);
 
-    const count = await this.db("location")
+    const count = await this.db("warehouse")
       .count("w_id AS total")
       .where(function () {
         if (w_name) {
           this.andWhere("w_name", "Like", `%${w_name}%`);
-        }
-        if (type) {
-          this.andWhere("type", type);
         }
       });
 
@@ -107,8 +99,8 @@ class AdminWareHouseService extends AdminAbstractServices {
         "pv.p_name",
         "pv.p_status",
         "iv.i_quantity_available AS quantity_available",
-        "iv.i_quantity_sold AS quantity_sold",
-        "iv.inventory_attribute"
+        "iv.i_quantity_sold AS quantity_sold"
+        // "iv.inventory_attribute"
       )
       .leftJoin("product_view AS pv", "iv.i_p_id", "pv.p_id")
       .where("iv.i_w_id", id);
@@ -124,7 +116,7 @@ class AdminWareHouseService extends AdminAbstractServices {
     } else {
       return {
         success: false,
-        message: "No warehouse found with this id",
+        message: "No store found with this id",
       };
     }
   }
@@ -132,14 +124,14 @@ class AdminWareHouseService extends AdminAbstractServices {
   // update single warehouse
   public async updateWarehouseService(req: Request) {
     const { id } = req.params;
-    const checkWarehouse = await this.db("location")
+    const checkWarehouse = await this.db("warehouse")
       .select("w_id")
       .where({ w_id: id });
 
     if (!checkWarehouse.length) {
       return {
         success: false,
-        message: "location not found with this id",
+        message: "store not found with this id",
       };
     }
 

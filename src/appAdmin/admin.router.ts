@@ -59,7 +59,7 @@ class AdminRouter extends AdminAbstractRouter {
     // this.AdminRouter.use('/attribute', this.adminAttributeRouter.router);
     this.AdminRouter.use("/attribute", this.adminAttributeRouter.router);
     this.AdminRouter.use("/staff", this.adminStaffRouter.router);
-    this.AdminRouter.use("/location", this.adminWareHouseRouter.router);
+    this.AdminRouter.use("/store", this.adminWareHouseRouter.router);
     this.AdminRouter.use("/client", this.adminClientRouter.router);
     this.AdminRouter.use("/supplier", this.adminSupplierRouter.router);
     this.AdminRouter.use("/damage-product", this.adminDamageProduct.router);

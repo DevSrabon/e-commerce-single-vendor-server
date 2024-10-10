@@ -15,6 +15,42 @@ class AdminAddressController extends AdminAbstractController {
       res.json(data);
     }
   );
+
+  public createCountry = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.areaService.createCountry(req);
+      if (data.success) {
+        res.status(201).json(data);
+      } else {
+        res.status(409).json(data);
+      }
+    }
+  );
+
+  public updateCountry = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.areaService.updateCountry(req);
+
+      if (data.success) {
+        res.status(201).json(data);
+      } else {
+        res.status(409).json(data);
+      }
+    }
+  );
+
+  // delete country
+  public deleteCountry = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.areaService.deleteCountry(req);
+      if (data.success) {
+        res.status(201).json(data);
+      } else {
+        res.status(409).json(data);
+      }
+    }
+  );
+
   // get all province
   public getAllProvince = this.asyncWrapper.wrap(
     async (req: Request, res: Response) => {

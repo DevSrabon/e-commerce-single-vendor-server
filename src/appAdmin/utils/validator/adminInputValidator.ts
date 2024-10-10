@@ -32,9 +32,6 @@ class AdminInputValidator {
         .trim()
         .isString()
         .notEmpty(),
-      body("type", "Provide warehouse type")
-        .isIn(["Warehouse", "Store"])
-        .exists(),
       // body("w_ar_id", "Provide warehouse area id").exists().isInt(),
     ];
   }

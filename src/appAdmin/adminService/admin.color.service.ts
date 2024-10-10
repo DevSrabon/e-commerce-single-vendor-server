@@ -8,8 +8,11 @@ class AdminColorService extends AdminAbstractServices {
 
   //   create a color
   public async createColor(req: Request) {
-    const { color } = req.body;
-    const checkColor = await this.db("color").select("id").where({ color });
+    const { color_en, color_ar } = req.body;
+    const checkColor = await this.db("color")
+      .select("id")
+      .where({ color_en })
+      .orWhere({ color_ar });
     if (checkColor.length) {
       return {
         success: false,
@@ -34,12 +37,25 @@ class AdminColorService extends AdminAbstractServices {
 
   //   get all colors
   public async getAllColors(req: Request) {
-    const { limit, page, color, code, is_active } = req.query;
+    const {
+      limit,
+      page,
+      color,
+      code,
+      is_active,
+      sortBy = "created_at",
+      orderBy = "desc",
+    } = req.query;
+
     const res = await this.db("color")
       .select("*")
       .where((qb) => {
         if (color) {
-          qb.andWhere("color", "like", `%${color}%`);
+          qb.andWhere("color_en", "like", `%${color}%`).orWhere(
+            "color_ar",
+            "like",
+            `%${color}%`
+          );
         }
         if (code) {
           qb.andWhere("code", "like", `%${code}%`);
@@ -48,14 +64,18 @@ class AdminColorService extends AdminAbstractServices {
           qb.andWhere("is_active", is_active);
         }
       })
-      .orderBy("updated_at", "desc")
+      .orderBy(sortBy as string, orderBy as string)
       .limit(parseInt((limit as string) || "100"))
       .offset(parseInt((page as string) || "0"));
     const total = await this.db("color")
       .count("id as total")
       .where((qb) => {
         if (color) {
-          qb.andWhere("color", "like", `%${color}%`);
+          qb.andWhere("color_en", "like", `%${color}%`).orWhere(
+            "color_ar",
+            "like",
+            `%${color}%`
+          );
         }
         if (code) {
           qb.andWhere("code", "like", `%${code}%`);
@@ -81,6 +101,7 @@ class AdminColorService extends AdminAbstractServices {
   //   update single color
   public async updateSingleColor(req: Request) {
     const { id } = req.params;
+    const { color_en, color_ar } = req.body;
     const checkColor = await this.db("color").select("id").where({ id });
     if (!checkColor.length) {
       return {
@@ -88,14 +109,23 @@ class AdminColorService extends AdminAbstractServices {
         message: "Color not found with this id",
       };
     }
-    const checkColorName = await this.db("color")
-      .select("id")
-      .where({ color: req.body.color });
-    if (checkColorName.length) {
-      return {
-        success: false,
-        message: "Color already exist",
-      };
+    if (color_en || color_ar) {
+      const checkColorName = await this.db("color")
+        .select("id")
+        .where(function () {
+          if (color_en) {
+            this.where({ color_en });
+          }
+          if (color_ar) {
+            this.orWhere({ color_ar });
+          }
+        });
+      if (checkColorName.length) {
+        return {
+          success: false,
+          message: "Color already exist",
+        };
+      }
     }
     await this.db("color").update(req.body).where({ id });
     return {
@@ -249,8 +279,12 @@ class AdminColorService extends AdminAbstractServices {
 
   // create fabric
   public async createFabric(req: Request) {
-    const { name } = req.body;
-    const checkFabric = await this.db("fabric").select("id").where({ name });
+    const { name_en, name_ar } = req.body;
+    const checkFabric = await this.db("fabric")
+      .select("id")
+      .where(function () {
+        this.where({ name_en }).orWhere({ name_ar });
+      });
     if (checkFabric.length) {
       return {
         success: false,
@@ -273,12 +307,15 @@ class AdminColorService extends AdminAbstractServices {
 
   // get all fabric
   public async getAllFabric(req: Request) {
-    const { limit, page, name, is_active } = req.query;
+    const { limit, page, name_ar, name_en, is_active } = req.query;
     const res = await this.db("fabric")
       .select("*")
       .where((qb) => {
-        if (name) {
-          qb.andWhere("name", "like", `%${name}%`);
+        if (name_en) {
+          qb.andWhere("name", "like", `%${name_en}%`);
+        }
+        if (name_ar) {
+          qb.andWhere("name", "like", `%${name_ar}%`);
         }
         if (is_active) {
           qb.andWhere("is_active", is_active);
@@ -290,8 +327,11 @@ class AdminColorService extends AdminAbstractServices {
     const total = await this.db("fabric")
       .count("id as total")
       .where((qb) => {
-        if (name) {
-          qb.andWhere("name", "like", `%${name}%`);
+        if (name_en) {
+          qb.andWhere("name", "like", `%${name_en}%`);
+        }
+        if (name_ar) {
+          qb.andWhere("name", "like", `%${name_ar}%`);
         }
         if (is_active) {
           qb.andWhere("is_active", is_active);
@@ -309,6 +349,7 @@ class AdminColorService extends AdminAbstractServices {
   //   update single fabric
   public async updateSingleFabric(req: Request) {
     const { id } = req.params;
+    const { name_en, name_ar } = req.body;
     const checkFabric = await this.db("fabric").select("id").where({ id });
     if (!checkFabric.length) {
       return {
@@ -316,14 +357,18 @@ class AdminColorService extends AdminAbstractServices {
         message: "Fabric not found with this id",
       };
     }
-    const checkFabricName = await this.db("fabric")
-      .select("id")
-      .where({ name: req.body.name });
-    if (checkFabricName.length) {
-      return {
-        success: false,
-        message: "Fabric already exist",
-      };
+    if (name_en || name_ar) {
+      const checkFabricName = await this.db("fabric")
+        .select("id")
+        .where(function () {
+          this.where({ name_en }).orWhere({ name_ar });
+        });
+      if (checkFabricName.length) {
+        return {
+          success: false,
+          message: "Fabric already exist",
+        };
+      }
     }
     await this.db("fabric").update(req.body).where({ id });
     return {

@@ -42,7 +42,6 @@ class AdminProductService extends AdminAbstractServices {
   public async createProduct(req: Request) {
     const {
       w_id,
-      store_id,
       p_name_en,
       p_name_ar,
       p_tags,
@@ -87,31 +86,17 @@ class AdminProductService extends AdminAbstractServices {
     }
 
     return await this.db.transaction(async (trx) => {
-      const checkWarehouse = await trx("location")
-        .select("w_id")
-        .where({
-          w_id,
-        })
-        .andWhere("type", "Warehouse");
-      if (!checkWarehouse.length) {
-        return {
-          success: false,
-          message: "No warehouse found",
-        };
-      }
+      const checkWarehouse = await trx("warehouse").select("w_id").where({
+        w_id,
+      });
 
-      const checkStore = await trx("location")
-        .select("w_id")
-        .where({
-          w_id: store_id,
-        })
-        .andWhere("type", "Store");
-      if (!checkStore.length) {
+      if (!checkWarehouse.length) {
         return {
           success: false,
           message: "No store found",
         };
       }
+
       let p_slug = Lib.stringToSlug(p_name_en);
 
       const checkSlug = await trx("product").select("p_slug").where({
@@ -124,7 +109,6 @@ class AdminProductService extends AdminAbstractServices {
       // Insert product
       const productRes = await trx("product").insert({
         w_id,
-        store_id,
         p_name_en,
         p_name_ar,
         p_slug,
@@ -253,7 +237,6 @@ class AdminProductService extends AdminAbstractServices {
       // Insert inventory
       await trx("inventory").insert({
         i_w_id: w_id,
-        i_s_id: store_id,
         i_p_id: productId,
         i_quantity_available: p_unit,
       });
