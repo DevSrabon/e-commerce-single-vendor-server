@@ -1,5 +1,5 @@
-import { Request } from 'express';
-import AdminAbstractServices from '../adminAbstracts/admin.abstract.service';
+import { Request } from "express";
+import AdminAbstractServices from "../adminAbstracts/admin.abstract.service";
 
 class AdminClientService extends AdminAbstractServices {
   constructor() {
@@ -8,8 +8,8 @@ class AdminClientService extends AdminAbstractServices {
   // create a client
   public async createClientService(req: Request) {
     const { cl_email, cl_phone } = req.body;
-    const checkClient = await this.db('client')
-      .select('cl_email', 'cl_phone')
+    const checkClient = await this.db("client")
+      .select("cl_email", "cl_phone")
       .andWhere({ cl_email })
       .orWhere({ cl_phone });
 
@@ -17,12 +17,12 @@ class AdminClientService extends AdminAbstractServices {
       if (checkClient[0].cl_email === cl_email) {
         return {
           success: false,
-          message: 'Already have client with this email',
+          message: "Already have client with this email",
         };
       } else if (checkClient[0].cl_phone === cl_phone) {
         return {
           success: false,
-          message: 'Already have client with this phone',
+          message: "Already have client with this phone",
         };
       }
     }
@@ -32,17 +32,17 @@ class AdminClientService extends AdminAbstractServices {
       req.body[files[0]?.fieldname] = files[0]?.filename;
     }
 
-    const res = await this.db('client').insert(req.body);
+    const res = await this.db("client").insert(req.body);
 
     if (res.length) {
       return {
         success: true,
-        message: 'Client has been created',
+        message: "Client has been created",
       };
     } else {
       return {
         success: false,
-        message: 'Cannot create client',
+        message: "Cannot create client",
       };
     }
   }
@@ -57,11 +57,11 @@ class AdminClientService extends AdminAbstractServices {
       cl_phone,
       limit,
       skip,
-      order_by = 'cl_name',
-      according_order = 'asc',
+      order_by = "cl_name",
+      according_order = "asc",
     } = req.query;
 
-    const dtbs = this.db('client AS cl');
+    const dtbs = this.db("client AS cl");
 
     if (limit) {
       dtbs.limit(parseInt(limit as string));
@@ -72,51 +72,51 @@ class AdminClientService extends AdminAbstractServices {
 
     const category = await dtbs
       .select(
-        'cl_id',
-        'cl_type',
-        'cl_name',
-        'cl_image',
-        'cl_email',
-        'w_name',
-        'cl_status'
+        "cl_id",
+        "cl_type",
+        "cl_name",
+        "cl_image",
+        "cl_email",
+        "w_name",
+        "cl_status"
       )
-      .join('warehouse AS wh', 'cl.cl_w_id', 'wh.w_id')
+      .join("warehouse AS wh", "cl.cl_w_id", "wh.w_id")
       .where(function () {
         if (status) {
-          this.andWhere('cl.cl_status', status);
+          this.andWhere("cl.cl_status", status);
         }
         if (cl_name) {
-          this.andWhere('cl.cl_name', 'Like', `%${cl_name}%`);
+          this.andWhere("cl.cl_name", "Like", `%${cl_name}%`);
         }
         if (cl_email) {
-          this.andWhere('cl.cl_email', 'Like', `%${cl_email}%`);
+          this.andWhere("cl.cl_email", "Like", `%${cl_email}%`);
         }
         if (cl_phone) {
-          this.andWhere('cl.cl_phone', 'Like', `%${cl_phone}%`);
+          this.andWhere("cl.cl_phone", "Like", `%${cl_phone}%`);
         }
         if (address) {
-          this.andWhere('cl.cl_address', address);
+          this.andWhere("cl.cl_address", address);
         }
       })
       .orderBy(order_by as string, according_order as string);
 
-    const count = await this.db('client AS cl')
-      .count('cl_id AS total')
+    const count = await this.db("client AS cl")
+      .count("cl_id AS total")
       .where(function () {
         if (status) {
-          this.andWhere('cl.cl_status', status);
+          this.andWhere("cl.cl_status", status);
         }
         if (cl_name) {
-          this.andWhere('cl.cl_name', 'Like', `%${cl_name}%`);
+          this.andWhere("cl.cl_name", "Like", `%${cl_name}%`);
         }
         if (cl_email) {
-          this.andWhere('cl.cl_email', 'Like', `%${cl_email}%`);
+          this.andWhere("cl.cl_email", "Like", `%${cl_email}%`);
         }
         if (cl_phone) {
-          this.andWhere('cl.cl_phone', 'Like', `%${cl_phone}%`);
+          this.andWhere("cl.cl_phone", "Like", `%${cl_phone}%`);
         }
         if (address) {
-          this.andWhere('cl.cl_address', address);
+          this.andWhere("cl.cl_address", address);
         }
       });
 
@@ -131,47 +131,47 @@ class AdminClientService extends AdminAbstractServices {
   public async getSingleClientService(req: Request) {
     const { id } = req.params;
 
-    const data = await this.db('client AS cl')
+    const data = await this.db("client AS cl")
       .select(
-        'cl.cl_id',
-        'cl.cl_type',
-        'cl.cl_name',
-        'cl.cl_address',
-        'cl.cl_image',
-        'cl.cl_phone',
-        'cl.cl_email',
-        'cl.cl_contact_name',
-        'cl.cl_contact_phone',
-        'cl.cl_status',
-        'cl.cl_created_at',
-        'wh.w_id',
-        'wh.w_name',
-        'wh.w_address',
-        'wh.w_phone',
-        'wh.w_email',
-        'ar.ar_name_bn',
-        'ar.ar_name_en',
-        'ar.ar_url',
-        'sc.scit_name_en',
-        'sc.scit_name_bn',
-        'sc.scit_url',
-        'ct.cit_name_en',
-        'ct.cit_name_bn',
-        'ct.cit_lat',
-        'ct.cit_lon',
-        'ct.cit_url',
-        'pv.pro_name_en',
-        'pv.pro_name_bn',
-        'pv.pro_url',
-        'cnt.c_name_en',
-        'cnt.c_name_bn'
+        "cl.cl_id",
+        "cl.cl_type",
+        "cl.cl_name",
+        "cl.cl_address",
+        "cl.cl_image",
+        "cl.cl_phone",
+        "cl.cl_email",
+        "cl.cl_contact_name",
+        "cl.cl_contact_phone",
+        "cl.cl_status",
+        "cl.cl_created_at",
+        "wh.w_id",
+        "wh.w_name",
+        "wh.w_address",
+        "wh.w_phone",
+        "wh.w_email",
+        "ar.ar_name_ar",
+        "ar.ar_name_en",
+        "ar.ar_url",
+        "sc.scit_name_en",
+        "sc.scit_name_ar",
+        "sc.scit_url",
+        "ct.cit_name_en",
+        "ct.cit_name_ar",
+        "ct.cit_lat",
+        "ct.cit_lon",
+        "ct.cit_url",
+        "pv.pro_name_en",
+        "pv.pro_name_ar",
+        "pv.pro_url",
+        "cnt.c_name_en",
+        "cnt.c_name_ar"
       )
-      .join('warehouse AS wh', 'cl.cl_w_id', 'wh.w_id')
-      .join('area AS ar', 'cl.cl_ar_id', 'ar.ar_id')
-      .join('sub_city AS sc', 'ar.ar_scit_id', 'sc.scit_id')
-      .join('city AS ct', 'sc.scit_cit_id', 'ct.cit_id')
-      .join('province AS pv', 'ct.cit_pro_id', 'pv.pro_id')
-      .join('country AS cnt', 'pv.pro_c_id', 'cnt.c_id')
+      .join("warehouse AS wh", "cl.cl_w_id", "wh.w_id")
+      .join("area AS ar", "cl.cl_ar_id", "ar.ar_id")
+      .join("sub_city AS sc", "ar.ar_scit_id", "sc.scit_id")
+      .join("city AS ct", "sc.scit_cit_id", "ct.cit_id")
+      .join("province AS pv", "ct.cit_pro_id", "pv.pro_id")
+      .join("country AS cnt", "pv.pro_c_id", "cnt.c_id")
 
       .where({ cl_id: id });
 
@@ -183,7 +183,7 @@ class AdminClientService extends AdminAbstractServices {
     } else {
       return {
         success: false,
-        message: 'No client found with this id',
+        message: "No client found with this id",
       };
     }
   }
@@ -191,14 +191,14 @@ class AdminClientService extends AdminAbstractServices {
   // update single client
   public async updateClientService(req: Request) {
     const { id } = req.params;
-    const checkClient = await this.db('client')
-      .select('cl_name')
+    const checkClient = await this.db("client")
+      .select("cl_name")
       .where({ cl_id: id });
 
     if (!checkClient.length) {
       return {
         success: false,
-        message: 'Client not found with this id',
+        message: "Client not found with this id",
       };
     }
 
@@ -209,19 +209,19 @@ class AdminClientService extends AdminAbstractServices {
     }
 
     console.log(req.body);
-    const res = await this.db('client').update(req.body).where({ cl_id: id });
+    const res = await this.db("client").update(req.body).where({ cl_id: id });
 
     console.log({ res });
 
     if (res) {
       return {
         success: true,
-        data: 'Client updated successfully',
+        data: "Client updated successfully",
       };
     } else {
       return {
         success: false,
-        message: 'Cannot update client',
+        message: "Cannot update client",
       };
     }
   }

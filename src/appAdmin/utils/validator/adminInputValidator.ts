@@ -35,7 +35,7 @@ class AdminInputValidator {
       body("type", "Provide warehouse type")
         .isIn(["Warehouse", "Store"])
         .exists(),
-      body("w_ar_id", "Provide warehouse area id").exists().isInt(),
+      // body("w_ar_id", "Provide warehouse area id").exists().isInt(),
     ];
   }
 

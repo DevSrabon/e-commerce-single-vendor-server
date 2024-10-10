@@ -8,6 +8,13 @@ class AdminAddressController extends AdminAbstractController {
     super();
   }
 
+  // get all Countries
+  public getAllCountries = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.areaService.getAllCountries(req);
+      res.json(data);
+    }
+  );
   // get all province
   public getAllProvince = this.asyncWrapper.wrap(
     async (req: Request, res: Response) => {

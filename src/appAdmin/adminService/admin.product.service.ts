@@ -504,18 +504,38 @@ class AdminProductService extends AdminAbstractServices {
               throw new Error("Invalid color id");
             }
 
+            const checkProductColor = await trx("p_color")
+              .select("id")
+              .where({
+                p_id: id,
+                color_id: colorId,
+              })
+              .first();
+            if (checkProductColor) {
+              throw new Error("Color and product color already exist");
+            }
+
+            const insertNewColor = await trx("p_color").insert({
+              p_id: id,
+              color_id: colorId,
+            });
             const colorPhotos = files.filter(
               (file) => file.fieldname === `new_color_image_${colorIndex + 1}`
             );
+
+            if (!colorPhotos.length) {
+              throw new Error("Please provide color images");
+            }
             return colorPhotos.map((photo) => ({
               p_id: id,
-              color_id: colorId,
+              p_color_id: insertNewColor[0],
               image: photo.filename,
             }));
           })
         );
+
         if (colorImgArray.length) {
-          await trx("color_image").insert(colorImgArray);
+          await trx("color_image").insert(colorImgArray[0]);
         }
       }
 
@@ -547,11 +567,11 @@ class AdminProductService extends AdminAbstractServices {
       if (removedColors.length) {
         const checkColors = await trx("p_color")
           .select("id")
-          .whereIn("id", removedColors)
+          .whereIn("color_id", removedColors)
           .andWhere("p_id", id);
         if (
           !checkColors.length ||
-          (checkColors.length && checkColors.length === removedColors.length)
+          (checkColors.length && checkColors.length !== removedColors.length)
         ) {
           return {
             success: false,
@@ -561,14 +581,13 @@ class AdminProductService extends AdminAbstractServices {
 
         const checkColorPhotos = await trx("color_image")
           .select("image")
-          .whereIn("color_id", checkColors.map((c) => c.id) as number[]);
-        if (
-          !checkColorPhotos.length ||
-          checkColorPhotos.length !== removedColorPhotos.length
-        ) {
+          .whereIn("p_color_id", checkColors.map((c) => c.id) as number[])
+          .andWhere("p_id", id);
+
+        if (!checkColorPhotos.length) {
           return {
             success: false,
-            message: "Invalid Color photo ids",
+            message: "Unable to remove color photos from database",
           };
         }
         await trx("color_image").del().whereIn("id", removedColorPhotos);

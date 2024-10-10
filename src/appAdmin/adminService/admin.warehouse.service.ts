@@ -45,14 +45,10 @@ class AdminWareHouseService extends AdminAbstractServices {
   public async getAllWarehouseService(req: Request) {
     const {
       w_name,
-      city,
-      sub_city,
-      area,
       limit,
-      province_id,
       type,
       skip,
-      order_by = "w_id",
+      order_by = "created_at",
       according_order = "asc",
     } = req.query;
 
@@ -66,30 +62,9 @@ class AdminWareHouseService extends AdminAbstractServices {
     }
 
     const data = await dtbs
-      .select(
-        "w.w_id",
-        "w.w_name",
-        "w.w_address",
-        "av.area_name",
-        "av.sub_city_name",
-        "av.city_name",
-        "av.province_name"
-      )
-      .leftJoin("address_view AS av", "w.w_ar_id", "av.area_id")
-
+      .select("w.*", "u.au_name as created_by_name")
+      .join("admin_user AS u", "w.created_by", "u.au_id")
       .where(function () {
-        if (area) {
-          this.andWhere("w.w_ar_id", area);
-        }
-        if (city) {
-          this.andWhere("av.city_id", city);
-        }
-        if (sub_city) {
-          this.andWhere("av.sub_city_id", sub_city);
-        }
-        if (province_id) {
-          this.andWhere("av.province_id", province_id);
-        }
         if (w_name) {
           this.andWhere("w_name", "Like", `%${w_name}%`);
         }
@@ -101,20 +76,7 @@ class AdminWareHouseService extends AdminAbstractServices {
 
     const count = await this.db("location")
       .count("w_id AS total")
-      // .join("area", "location.w_ar_id", "area.ar_id")
-      // .join("sub_city AS sc", "area.ar_scit_id", "sc.scit_id")
-      // .join("city AS c", "sc.scit_cit_id", "c.cit_id")
-      .leftJoin("address_view AS av", "location.w_ar_id", "av.area_id")
       .where(function () {
-        if (area) {
-          this.andWhere("w_ar_id", area);
-        }
-        if (city) {
-          this.andWhere("cit_id", city);
-        }
-        if (sub_city) {
-          this.andWhere("scit_id", sub_city);
-        }
         if (w_name) {
           this.andWhere("w_name", "Like", `%${w_name}%`);
         }

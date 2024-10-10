@@ -1,5 +1,5 @@
-import AdminAbstractRouter from '../adminAbstracts/admin.abstract.router';
-import AdminAddressController from '../adminController/admin.address.controller';
+import AdminAbstractRouter from "../adminAbstracts/admin.abstract.router";
+import AdminAddressController from "../adminController/admin.address.controller";
 
 class AdminAddressRouter extends AdminAbstractRouter {
   private addressController = new AdminAddressController();
@@ -9,16 +9,18 @@ class AdminAddressRouter extends AdminAbstractRouter {
   }
 
   private callRouter() {
+    // get all countries
+    this.router.route("/country").get(this.addressController.getAllCountries);
     // get province router
-    this.router.route('/province').get(this.addressController.getAllProvince);
+    this.router.route("/province").get(this.addressController.getAllProvince);
     // get cities router
     this.router
-      .route('/cities')
+      .route("/cities")
       .get(this.addressController.getAllCityByProvinceOrAll);
 
     // get all sub cities by city
     this.router
-      .route('/sub-cities')
+      .route("/sub-cities")
       .get(
         this.addressValidator.getAllSubCitiesByCityValidator(),
         this.addressController.getAllSubCityByCity
@@ -30,7 +32,7 @@ class AdminAddressRouter extends AdminAbstractRouter {
 
     // get all area by sub city
     this.router
-      .route('/area')
+      .route("/area")
       .get(
         this.addressValidator.getAllAreaBySubCityValidator(),
         this.addressController.getAllAreaBySubCity
