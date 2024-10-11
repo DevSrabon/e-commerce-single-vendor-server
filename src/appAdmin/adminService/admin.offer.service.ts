@@ -2,7 +2,12 @@ import { Request } from "express";
 import CommonService from "../../common/commonService/common.service";
 import Lib from "../../utils/lib/lib";
 import AdminAbstractServices from "../adminAbstracts/admin.abstract.service";
-
+interface IOfferProducts {
+  p_id: number;
+  op_discount: number;
+  op_discount_type: "fixed" | "percentage";
+  id?: number;
+}
 class AdminOfferService extends AdminAbstractServices {
   constructor() {
     super();
@@ -11,7 +16,9 @@ class AdminOfferService extends AdminAbstractServices {
     const { au_id } = req.user;
     const { product_ids, offer_name_en, offer_name_ar, ...rest } = req.body;
     const files = (req.files as Express.Multer.File[]) || [];
-    const productIds: number[] = product_ids ? JSON.parse(product_ids) : [];
+    const productIds: IOfferProducts[] = product_ids
+      ? JSON.parse(product_ids)
+      : [];
     if (!files.length) {
       return {
         success: false,
@@ -41,24 +48,21 @@ class AdminOfferService extends AdminAbstractServices {
       if (productIds.length && insertOffer.length) {
         const checkProducts = await trx("product")
           .select("p_id")
-          .whereIn("p_id", productIds);
+          .whereIn(
+            "p_id",
+            productIds.map((pId) => pId.p_id)
+          );
         if (productIds.length !== checkProducts.length) {
           return {
             success: false,
             message: "Products doesn't exists!",
           };
         }
-        // const checkOfferProducts = await trx("offer_products")
-        //   .select("id")
-        //   .whereIn("p_id", productIds).andWhere("status",1);
-        // if (checkOfferProducts.length) {
-        //   return {
-        //     success: false,
-        //     message: "Some products are already exists in offer product!",
-        //   };
-        // }
         const offerProductsPayload = productIds.map((pId) => {
-          return { offer_id: insertOffer, p_id: pId };
+          return {
+            offer_id: insertOffer,
+            ...pId,
+          };
         });
         await trx("offer_products").insert(offerProductsPayload);
       }
@@ -104,9 +108,9 @@ class AdminOfferService extends AdminAbstractServices {
   }
 
   public async getSingle(req: Request) {
-    const { offer_id } = req.params;
+    const { id } = req.params;
 
-    const offer = await this.db("offers").where({ offer_id }).first();
+    const offer = await this.db("offers").where({ id }).first();
 
     if (!offer) {
       return {
@@ -116,9 +120,9 @@ class AdminOfferService extends AdminAbstractServices {
     }
 
     const offerProducts = await this.db("offer_products as opd")
-      .select("p.p_name", "p.p_id")
+      .select("*")
       .join("product_view as p", "opd.p_id", "=", "p.p_id")
-      .where("offer_products.offer_id", offer_id);
+      .where("opd.offer_id", id);
 
     return {
       success: true,
@@ -130,22 +134,25 @@ class AdminOfferService extends AdminAbstractServices {
   }
 
   public async updateSingle(req: Request) {
-    const { offer_id } = req.params;
+    const { id: offer_id } = req.params;
     const {
       offer_name_en,
       offer_name_ar,
       addProductIds,
+      editProductIds,
       deleteProductIds,
       ...rest
     } = req.body;
     const files = (req.files as Express.Multer.File[]) || [];
-    const parsedAddProductIds: number[] = addProductIds
+    const parsedAddProductIds: IOfferProducts[] = addProductIds
       ? JSON.parse(addProductIds)
       : [];
     const parsedDeleteProductIds: number[] = deleteProductIds
       ? JSON.parse(deleteProductIds)
       : [];
-
+    const parsedEditProductIds: IOfferProducts[] = editProductIds
+      ? JSON.parse(editProductIds)
+      : [];
     const existingOffer = await this.db("offers").where({ offer_id }).first();
 
     if (!existingOffer) {
@@ -188,15 +195,16 @@ class AdminOfferService extends AdminAbstractServices {
       if (parsedAddProductIds.length) {
         const checkProducts = await trx("product")
           .select("p_id")
-          .whereIn("p_id", parsedAddProductIds);
+          .whereIn(
+            "p_id",
+            parsedAddProductIds.map((pId) => pId.p_id)
+          );
         if (parsedAddProductIds.length !== checkProducts.length) {
           return {
             success: false,
             message: "Some products don't exist!",
           };
         }
-        // Delete existing products related to the offer
-        await trx("offer_products").where({ offer_id }).delete();
 
         // Insert new products into the offer
         const offerProductsPayload = parsedAddProductIds.map((pId) => {
@@ -209,6 +217,43 @@ class AdminOfferService extends AdminAbstractServices {
         await trx("offer_products")
           .whereIn("p_id", parsedDeleteProductIds)
           .delete();
+      }
+
+      if (parsedEditProductIds.length) {
+        const checkProducts = await trx("product")
+          .select("p_id")
+          .whereIn(
+            "p_id",
+            parsedEditProductIds.map((pId) => pId.p_id)
+          );
+        if (parsedEditProductIds.length !== checkProducts.length) {
+          return {
+            success: false,
+            message: "Some products don't exist!",
+          };
+        }
+
+        // Update products in the offer
+        for (const pId of parsedEditProductIds) {
+          const getOfferProduct = await trx("offer_products")
+            .select("*")
+            .where({
+              id: pId.id,
+              p_id: pId.p_id,
+              offer_id,
+            });
+
+          if (!getOfferProduct.length) {
+            throw new Error("Offer product doesn't exists!");
+          }
+          await trx("offer_products")
+            .where({ p_id: pId.p_id, offer_id, id: pId.id })
+            .update({
+              op_discount: pId.op_discount ?? getOfferProduct[0].op_discount,
+              op_discount_type:
+                pId.op_discount_type ?? getOfferProduct[0].op_discount_type,
+            });
+        }
       }
 
       await new CommonService().createAuditTrailService({

@@ -10,15 +10,9 @@ class AdminOfferValidator {
       body("offer_name_ar", "Offer name in Arabic is required")
         .exists()
         .isString(),
-      body("discount", "Provide valid discount amount")
-        .exists()
-        .isFloat({ gt: 0 }),
-      body("discount_type", "Provide valid discount type")
-        .exists()
-        .isIn(["percentage", "fixed"]),
       body("start_date", "Provide a valid start date").exists().isISO8601(),
       body("end_date", "Provide a valid end date").exists().isISO8601(),
-      body("product_ids").isString().optional(),
+      body("product_ids.*", "Provide product ids").isString().exists(),
     ];
   }
 
