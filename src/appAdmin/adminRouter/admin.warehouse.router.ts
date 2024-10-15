@@ -6,10 +6,10 @@ class AdminWareHouseRouter extends AdminAbstractRouter {
 
   constructor() {
     super();
-    this.callrouter();
+    this.callRouter();
   }
 
-  private callrouter() {
+  private callRouter() {
     this.router.use(this.authChecker.authChecker);
     // create warehouse and get all warehouse
     this.router

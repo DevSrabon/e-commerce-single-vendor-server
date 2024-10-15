@@ -1,27 +1,27 @@
-import AdminAbstractRouter from '../adminAbstracts/admin.abstract.router';
-import AdminEcustomerController from '../adminController/admin.e-customer.controller';
+import AdminAbstractRouter from "../adminAbstracts/admin.abstract.router";
+import AdminEcustomerController from "../adminController/admin.e-customer.controller";
 
 class AdminEcustomerRouter extends AdminAbstractRouter {
   private eCustomerController = new AdminEcustomerController();
 
   constructor() {
     super();
-    this.callrouter();
+    this.callRouter();
   }
 
-  private callrouter() {
+  private callRouter() {
     // get all e-customer
     this.router
-      .route('/')
+      .route("/")
       .get(this.eCustomerController.getAllEcustomerController);
 
     // get single e-customer
     this.router
-      .route('/:id')
+      .route("/:id")
       .get(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide valid e-customer id'
+          "id",
+          "Provide valid e-customer id"
         ),
         this.eCustomerController.getSingleEcustomerController
       );

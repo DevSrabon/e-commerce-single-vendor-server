@@ -45,7 +45,7 @@ class CommonController extends CommonAbstractController {
           value: email,
         });
 
-        if (checkUser) {
+        if (!checkUser) {
           data = await this.commonService.sendOtpToEmailService(obj);
         } else {
           data = {
@@ -97,6 +97,18 @@ class CommonController extends CommonAbstractController {
         res.status(200).json(data);
       } else {
         res.status(400).json(data);
+      }
+    }
+  );
+
+  // Get all currencies
+  public getAllCurrencies = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.commonService.getAllCurrencies(req);
+      if (data.success) {
+        res.status(200).json(data);
+      } else {
+        this.error(data.message, 400);
       }
     }
   );

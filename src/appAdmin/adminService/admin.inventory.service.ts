@@ -38,7 +38,7 @@ class AdminInventoryService extends AdminAbstractServices {
         "w.w_name"
       )
       .leftJoin("product_view AS pv", "iv.i_p_id", "pv.p_id")
-      .leftJoin("location AS w", "iv.i_w_id", "w.w_id")
+      .leftJoin("warehouse AS w", "iv.i_w_id", "w.w_id")
       .where(function () {
         if (w_id) {
           this.andWhere("iv.i_w_id", w_id).andWhere(function () {
@@ -67,21 +67,19 @@ class AdminInventoryService extends AdminAbstractServices {
       .select(
         "w.w_id",
         "w.w_name",
-        "pv.p_id",
-        "pv.p_name",
-        "pv.p_slug",
-        "pv.p_unit",
-        "pv.p_tags",
-        "pv.p_details",
-        "pv.p_status",
-        "pv.s_id",
-        "pv.s_name",
-        "pv.s_image",
         "iv.i_quantity_available",
-        "pv.categories",
-        "pv.p_images",
-        "pv.p_attribute",
-        "inventory_attribute"
+        "pv.*"
+        // "pv.p_id",
+        // "pv.p_name_en",
+        // "pv.p_name_ar",
+        // "pv.p_slug",
+        // "pv.p_unit",
+        // "pv.p_tags",
+        // "pv.p_details_en",
+        // "pv.p_details_ar",
+        // "pv.p_status",
+        // "pv.categories",
+        // "pv.p_images"
       )
       .leftJoin("product_view AS pv", "iv.i_p_id", "pv.p_id")
       .leftJoin("warehouse AS w", "iv.i_w_id", "w.w_id")

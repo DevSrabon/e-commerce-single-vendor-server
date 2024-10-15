@@ -1,5 +1,4 @@
 import { Request } from "express";
-import { callSingleParamStoredProcedure } from "../../utils/procedure/common-procedure";
 import AdminAbstractServices from "../adminAbstracts/admin.abstract.service";
 
 class AdminWareHouseService extends AdminAbstractServices {
@@ -88,15 +87,14 @@ class AdminWareHouseService extends AdminAbstractServices {
   public async getSingleWarehouseService(req: Request) {
     const { id } = req.params;
 
-    const warehouseInfo = await callSingleParamStoredProcedure(
-      "getSingleWarehouse",
-      parseInt(id)
-    );
+    const warehouseInfo = await this.db("warehouse")
+      .select("*")
+      .where({ w_id: id });
 
     const products = await this.db("inventory_view AS iv")
       .select(
         "iv.i_p_id AS p_id",
-        "pv.p_name",
+        "pv.p_name_en",
         "pv.p_status",
         "iv.i_quantity_available AS quantity_available",
         "iv.i_quantity_sold AS quantity_sold"

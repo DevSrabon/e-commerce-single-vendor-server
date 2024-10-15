@@ -1,19 +1,18 @@
-import AdminAbstractRouter from '../adminAbstracts/admin.abstract.router';
-import AdminClientController from '../adminController/admin.client.controller';
-import AdminPurchaseController from '../adminController/admin.purchase.controller';
+import AdminAbstractRouter from "../adminAbstracts/admin.abstract.router";
+import AdminPurchaseController from "../adminController/admin.purchase.controller";
 
 class AdminPurchaseRouter extends AdminAbstractRouter {
   private purchaseController = new AdminPurchaseController();
 
   constructor() {
     super();
-    this.callrouter();
+    this.callRouter();
   }
 
-  private callrouter() {
+  private callRouter() {
     // purchase and get all purchase
     this.router
-      .route('/')
+      .route("/")
       .post(
         this.adminInputValidator.purchaseValidator(),
         this.purchaseController.createPurchaseController
@@ -22,18 +21,18 @@ class AdminPurchaseRouter extends AdminAbstractRouter {
 
     // get all purchase for report
     this.router
-      .route('/ledger')
+      .route("/ledger")
       .get(this.purchaseController.getAllPurchaseForReportLedgerController);
 
     // end report part
 
     // get single purchase
     this.router
-      .route('/:id')
+      .route("/:id")
       .get(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide purchase id'
+          "id",
+          "Provide purchase id"
         ),
         this.purchaseController.getSinglePurchaseController
       );

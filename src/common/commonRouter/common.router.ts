@@ -1,5 +1,5 @@
-import CommonAbstractRouter from '../commonAbstract/commmon.abstract.router';
-import CommonController from '../commonController/common.controller';
+import CommonAbstractRouter from "../commonAbstract/commmon.abstract.router";
+import CommonController from "../commonController/common.controller";
 
 class CommonRouter extends CommonAbstractRouter {
   private CommonController = new CommonController();
@@ -12,17 +12,19 @@ class CommonRouter extends CommonAbstractRouter {
   private callRouter() {
     // send Email otp
     this.router.post(
-      '/send-email-otp',
+      "/send-email-otp",
       this.commonValidator.sendOtpInputValidator(),
       this.CommonController.sendEmailOtpController
     );
 
     // match email otp
     this.router.post(
-      '/match-email-otp',
+      "/match-email-otp",
       this.commonValidator.matchEmailOtpInputValidator(),
       this.CommonController.matchEmailOtpController
     );
+
+    this.router.get("/currency", this.CommonController.getAllCurrencies);
   }
 }
 export default CommonRouter;

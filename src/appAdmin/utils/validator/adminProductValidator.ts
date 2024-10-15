@@ -127,10 +127,8 @@ class AdminProductValidator {
         checkFalsy: false,
       }),
 
-      body("ptp_attribute.*.ptpa_av_id", "Provide ptpa_av_id")
-        .isInt()
-        .optional(),
-      body("ptp_attribute.*.ptpa_quantity", "Provide ptpa_quantity")
+      body("ptp_variant.*.ptpa_av_id", "Provide ptpa_av_id").isInt().optional(),
+      body("ptp_variant.*.ptpa_quantity", "Provide ptpa_quantity")
         .isInt()
         .optional(),
     ];

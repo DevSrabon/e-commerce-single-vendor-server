@@ -5,10 +5,10 @@ class AdminProductRouter extends AdminAbstractRouter {
   private productController = new AdminProductController();
   constructor() {
     super();
-    this.callrouter();
+    this.callRouter();
   }
 
-  private callrouter() {
+  private callRouter() {
     // create product and get product by status or all
     this.router
       .route("/")

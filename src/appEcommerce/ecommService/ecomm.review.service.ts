@@ -1,5 +1,5 @@
-import EcommAbstractServices from '../ecommAbstracts/ecomm.abstract.service';
-import { Request } from 'express';
+import { Request } from "express";
+import EcommAbstractServices from "../ecommAbstracts/ecomm.abstract.service";
 
 class EcommReviewService extends EcommAbstractServices {
   constructor() {
@@ -12,55 +12,56 @@ class EcommReviewService extends EcommAbstractServices {
     const { ec_id } = req.customer;
     const files = (req.files as Express.Multer.File[]) || [];
 
-    const check = await this.db('e_product_review as epr')
-      .select('*')
-      .andWhere('epr.epr_eo_id', order_id)
-      .andWhere('epr.epr_ec_id', ec_id)
-      .andWhere('epr.epr_ep_id', product_id);
+    const check = await this.db("product_review as epr")
+      .select("*")
+      .andWhere("epr.eo_id", order_id)
+      .andWhere("epr.ec_id", ec_id)
+      .andWhere("epr.ep_id", product_id);
 
     if (check.length) {
       return {
         success: false,
-        message: 'You already review to this product',
+        message: "You already review to this product",
       };
     }
 
-    const res = await this.db('e_product_review').insert({
-      epr_ec_id: ec_id,
-      epr_ep_id: product_id,
-      epr_comment: comment,
-      epr_rating: rating,
-      epr_eo_id: order_id,
+    const res = await this.db("product_review").insert({
+      ec_id: ec_id,
+      ep_id: product_id,
+      comment: comment,
+      rating: rating,
+      eo_id: order_id,
     });
 
     if (files.length) {
-      const reviewImage: { epri_image: string; epri_epr_id: number }[] =
-        files.map((item) => {
-          return { epri_image: item.filename, epri_epr_id: res[0] };
-        });
-      await this.db('epr_image').insert(reviewImage);
+      const reviewImage: { epri_image: string; epri_id: number }[] = files.map(
+        (item) => {
+          return { epri_image: item.filename, epri_id: res[0] };
+        }
+      );
+      await this.db("image").insert(reviewImage);
     }
 
     return {
       success: true,
-      message: 'Review added successfully',
+      message: "Review added successfully",
     };
   }
 
   // get review of a product
   public async getReviewOfProductService(id: string | number) {
-    const data = await this.db('ep_review_view')
+    const data = await this.db("ep_review_view")
       .select(
-        'id',
-        'rating',
-        'comment',
-        'review_images',
-        'created_at',
-        'customer_id',
-        'customer_name'
+        "id",
+        "rating",
+        "comment",
+        "review_images",
+        "created_at",
+        "customer_id",
+        "customer_name"
       )
-      .andWhere('product_id', id)
-      .andWhere('status', 1);
+      .andWhere("product_id", id)
+      .andWhere("status", 1);
 
     return {
       success: true,
@@ -70,19 +71,19 @@ class EcommReviewService extends EcommAbstractServices {
 
   // get review of customer
   public async getReviewOfCustomerService(id: number) {
-    const data = await this.db('ep_review_view')
+    const data = await this.db("ep_review_view")
       .select(
-        'id',
-        'rating',
-        'comment',
-        'review_images',
-        'created_at',
-        'product_id',
-        'product_slug',
-        'product_name'
+        "id",
+        "rating",
+        "comment",
+        "review_images",
+        "created_at",
+        "product_id",
+        "product_slug",
+        "product_name"
       )
-      .andWhere('customer_id', id)
-      .andWhere('status', 1);
+      .andWhere("customer_id", id)
+      .andWhere("status", 1);
 
     return {
       success: true,
@@ -95,40 +96,40 @@ class EcommReviewService extends EcommAbstractServices {
 
   // delete Review
   public async deleteReviewService(id: string | number, ec_id: number) {
-    const res = await this.db('e_product_review')
-      .update({ epr_status: 0 })
-      .andWhere('epr_id', id)
-      .andWhere('epr_ec_id', ec_id);
+    const res = await this.db("product_review")
+      .update({ status: 0 })
+      .andWhere("id", id)
+      .andWhere("ec_id", ec_id);
 
     if (res) {
       return {
         success: true,
-        message: 'Review deleted successfully',
+        message: "Review deleted successfully",
       };
     } else {
       return {
         success: false,
-        message: 'Invalid review',
+        message: "Invalid review",
       };
     }
   }
 
   // get to review products
   public async getToReviewProduct(ec_id: number) {
-    const data = await this.db('e_order_details as eod')
+    const data = await this.db("e_order_details as eod")
       .select(
-        'ep.ep_id as id',
-        'eo.eo_id as order_id',
-        'ep.p_name as name',
-        'ep.p_slug as slug',
-        'ep.p_images as images'
+        "ep.ep_id as id",
+        "eo.eo_id as order_id",
+        "ep.p_name as name",
+        "ep.p_slug as slug",
+        "ep.p_images as images"
       )
-      .join('e_order as eo', 'eod.eod_eo_id', 'eo.eo_id')
-      .join('e_product_view as ep', 'eod.eod_ep_id', 'ep.ep_id')
-      .leftJoin('e_product_review as epr', 'eod.eod_ep_id', 'epr.epr_ep_id')
-      .andWhere('eo.eo_status', 'delivered')
-      .andWhere('eo.eo_ec_id', ec_id)
-      .andWhere('epr.epr_ec_id', null);
+      .join("e_order as eo", "eod.eod_eo_id", "eo.eo_id")
+      .join("e_product_view as ep", "eod.eod_ep_id", "ep.ep_id")
+      .leftJoin("product_review as epr", "eod.eod_ep_id", "epr.ep_id")
+      .andWhere("eo.eo_status", "delivered")
+      .andWhere("eo.eo_ec_id", ec_id)
+      .andWhere("epr.ec_id", null);
 
     return {
       success: true,

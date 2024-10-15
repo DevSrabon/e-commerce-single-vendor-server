@@ -1,18 +1,18 @@
-import AdminAbstractRouter from '../adminAbstracts/admin.abstract.router';
-import AdminEcommerceProductController from '../adminController/admin.e-product.controller';
+import AdminAbstractRouter from "../adminAbstracts/admin.abstract.router";
+import AdminEcommerceProductController from "../adminController/admin.e-product.controller";
 
 class AdminEproductRouter extends AdminAbstractRouter {
   private ecommerceController = new AdminEcommerceProductController();
 
   constructor() {
     super();
-    this.callrouter();
+    this.callRouter();
   }
 
-  private callrouter() {
+  private callRouter() {
     // add product into ecommerce and get all ecommerce product
     this.router
-      .route('/')
+      .route("/")
       .post(
         this.productValidator.addEcommerceProductValidator(),
         this.ecommerceController.addProductIntoEcommerceController
@@ -21,18 +21,18 @@ class AdminEproductRouter extends AdminAbstractRouter {
 
     // get single ecommerce product and update ecommerce product
     this.router
-      .route('/:id')
+      .route("/:id")
       .get(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide valid ecommerce product id'
+          "id",
+          "Provide valid ecommerce product id"
         ),
         this.ecommerceController.getSingleEcommerceProductController
       )
       .patch(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide valid ecommerce product id'
+          "id",
+          "Provide valid ecommerce product id"
         ),
         this.ecommerceController.updateEcommerceProductController
       );

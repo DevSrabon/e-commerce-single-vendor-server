@@ -1,37 +1,37 @@
-import AdminAbstractRouter from '../adminAbstracts/admin.abstract.router';
-import AdminEcommerceOrderController from '../adminController/admin.e-order.controller';
+import AdminAbstractRouter from "../adminAbstracts/admin.abstract.router";
+import AdminEcommerceOrderController from "../adminController/admin.e-order.controller";
 
 class AdminEorderRouter extends AdminAbstractRouter {
   private ecommerceOrderController = new AdminEcommerceOrderController();
 
   constructor() {
     super();
-    this.callrouter();
+    this.callRouter();
   }
 
-  private callrouter() {
+  private callRouter() {
     // get all e-order
     this.router
-      .route('/')
+      .route("/")
       .get(this.ecommerceOrderController.getAllEorderController);
 
     // get single e-order and update
     this.router
-      .route('/:id')
+      .route("/:id")
       .get(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide valid e-order id'
+          "id",
+          "Provide valid e-order id"
         ),
         this.ecommerceOrderController.getSingleEorderController
       );
 
     this.router
-      .route('/payment/:id')
+      .route("/payment/:id")
       .patch(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide valid e-order id'
+          "id",
+          "Provide valid e-order id"
         ),
         this.ecommerceOrderController.updateSingleEorderPaymentController
       );
@@ -39,11 +39,11 @@ class AdminEorderRouter extends AdminAbstractRouter {
     // order tracking update
 
     this.router
-      .route('/tracking/:orderId')
+      .route("/tracking/:orderId")
       .patch(
         this.commonValidator.singleParamInputValidator(
-          'orderId',
-          'Provide valid e-order id'
+          "orderId",
+          "Provide valid e-order id"
         ),
         this.ecommerceOrderController.updateSingleEorderTrackingController
       );

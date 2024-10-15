@@ -1,33 +1,33 @@
-import AdminAbstractRouter from '../adminAbstracts/admin.abstract.router';
-import AdminSupplierController from '../adminController/admin.supplier.controller';
+import AdminAbstractRouter from "../adminAbstracts/admin.abstract.router";
+import AdminSupplierController from "../adminController/admin.supplier.controller";
 
 class AdminSupplierRouter extends AdminAbstractRouter {
   private supplierController = new AdminSupplierController();
 
   constructor() {
     super();
-    this.callrouter();
+    this.callRouter();
   }
 
-  private callrouter() {
+  private callRouter() {
     // create supplier and get all supplier with status
 
     this.router
-      .route('/')
+      .route("/")
       .post(
-        this.uploader.storageUploadRaw('supplier_files'),
+        this.uploader.storageUploadRaw("supplier_files"),
         this.adminInputValidator.createSupplierValidator(),
         this.supplierController.createSupplierController
       )
       .get(this.supplierController.getAllSupplierController);
 
     this.router
-      .route('/invoice')
+      .route("/invoice")
       .get(this.supplierController.getAllSupplierInvoiceController);
 
     // supplier invoice
     this.router
-      .route('/invoice/:id')
+      .route("/invoice/:id")
       .get(
         this.commonValidator.commonSingleIdInParamsValidator(),
         this.supplierController.getSingleSupplierInvoiceController
@@ -40,30 +40,30 @@ class AdminSupplierRouter extends AdminAbstractRouter {
     // =============== ledger and report===============//
 
     this.router
-      .route('/report/:id')
+      .route("/report/:id")
       .get(this.supplierController.getAllReportBySupplierController);
 
     this.router
-      .route('/ledger/:id')
+      .route("/ledger/:id")
       .get(this.supplierController.getAllLedgerBySupplierController);
 
     // ================ end ================//
 
     // get single supplier
     this.router
-      .route('/:id')
+      .route("/:id")
       .get(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide supplier id'
+          "id",
+          "Provide supplier id"
         ),
         this.supplierController.getSingleSupplierController
       )
       .patch(
-        this.uploader.storageUploadRaw('supplier_files'),
+        this.uploader.storageUploadRaw("supplier_files"),
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide supplier id'
+          "id",
+          "Provide supplier id"
         ),
         this.supplierController.updateSupplierController
       );

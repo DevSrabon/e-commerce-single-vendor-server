@@ -1,18 +1,18 @@
-import AdminAbstractRouter from '../adminAbstracts/admin.abstract.router';
-import AdminSaleInvoiceController from '../adminController/admin.sale-invoice.controller';
+import AdminAbstractRouter from "../adminAbstracts/admin.abstract.router";
+import AdminSaleInvoiceController from "../adminController/admin.sale-invoice.controller";
 
 class AdminSaleInvoiceRouter extends AdminAbstractRouter {
   private saleInvoiceController = new AdminSaleInvoiceController();
 
   constructor() {
     super();
-    this.callrouter();
+    this.callRouter();
   }
 
-  private callrouter() {
+  private callRouter() {
     // create sale invoice
     this.router
-      .route('/')
+      .route("/")
       .post(
         this.adminInputValidator.saleValidator(),
         this.saleInvoiceController.createSaleInvoiceController
@@ -21,29 +21,29 @@ class AdminSaleInvoiceRouter extends AdminAbstractRouter {
 
     // get single invoice
     this.router
-      .route('/:id')
+      .route("/:id")
       .get(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide valid invoice id'
+          "id",
+          "Provide valid invoice id"
         ),
         this.saleInvoiceController.getSingleSaleInvoiceController
       )
       .patch(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide valid invoice id'
+          "id",
+          "Provide valid invoice id"
         ),
         this.saleInvoiceController.updateInvoiceRemarkController
       );
 
     // get single inventory product
     this.router
-      .route('/warehouse-inventory/:id')
+      .route("/warehouse-inventory/:id")
       .get(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide valid inventory id'
+          "id",
+          "Provide valid inventory id"
         ),
         this.saleInvoiceController.getSingleInventoryController
       );

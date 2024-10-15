@@ -15,7 +15,9 @@ import AdminWareHouseRouter from "./adminRouter/admin.warehouse.router";
 // import AdminAccountsRouter from './adminRouter/admin.accounts.router';
 import AdminAbstractRouter from "./adminAbstracts/admin.abstract.router";
 import AdminColorRouter from "./adminRouter/admin.color.router";
+import AdminCurrencyRouter from "./adminRouter/admin.currency.router";
 import AdminInventoryRouter from "./adminRouter/admin.inventory.router";
+import AdminMailRouter from "./adminRouter/admin.mail.router";
 import AdminOfferRouter from "./adminRouter/admin.offer.router";
 import AdminProfileRouter from "./adminRouter/admin.profile.router";
 import AdminReportRouter from "./adminRouter/admin.report.router";
@@ -42,6 +44,8 @@ class AdminRouter extends AdminAbstractRouter {
   private adminSaleInvoice = new AdminSaleInvoiceRouter();
   private adminReport = new AdminReportRouter();
   private adminOffer = new AdminOfferRouter();
+  private adminMail = new AdminMailRouter();
+  private adminCurrency = new AdminCurrencyRouter();
 
   constructor() {
     super();
@@ -72,6 +76,8 @@ class AdminRouter extends AdminAbstractRouter {
     this.AdminRouter.use("/sale-invoice", this.adminSaleInvoice.router);
     this.AdminRouter.use("/report", this.adminReport.reportRouter);
     this.AdminRouter.use("/offer", this.adminOffer.router);
+    this.AdminRouter.use("/mail", this.adminMail.router);
+    this.AdminRouter.use("/currency", this.adminCurrency.router);
   }
 }
 export default AdminRouter;

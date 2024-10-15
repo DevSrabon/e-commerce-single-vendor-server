@@ -1,38 +1,38 @@
-import AdminAbstractRouter from '../adminAbstracts/admin.abstract.router';
-import AdminEcommerceQuestionController from '../adminController/admin.e-question.controller';
+import AdminAbstractRouter from "../adminAbstracts/admin.abstract.router";
+import AdminEcommerceQuestionController from "../adminController/admin.e-question.controller";
 
 class AdminEquestionRouter extends AdminAbstractRouter {
   private eQuestionController = new AdminEcommerceQuestionController();
 
   constructor() {
     super();
-    this.callrouter();
+    this.callRouter();
   }
 
-  private callrouter() {
+  private callRouter() {
     // get all e-question
     this.router
-      .route('/')
+      .route("/")
       .get(this.eQuestionController.getAllEquestionController);
 
     // get single e-question
     this.router
-      .route('/:id')
+      .route("/:id")
       .get(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide valid e-question id'
+          "id",
+          "Provide valid e-question id"
         ),
         this.eQuestionController.getSingleEquestionController
       );
 
     // question answer
     this.router
-      .route('/answer/:qId')
+      .route("/answer/:qId")
       .patch(
         this.commonValidator.singleParamInputValidator(
-          'qId',
-          'Provide valid e-question id'
+          "qId",
+          "Provide valid e-question id"
         ),
         this.eQuestionController.updateSingleEquestionController
       );

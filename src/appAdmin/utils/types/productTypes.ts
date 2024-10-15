@@ -1,5 +1,3 @@
-import { Request } from 'express';
-
 // product transfer start
 interface IpdTransfer {
   pt_from_w_id: number;
@@ -20,7 +18,7 @@ export interface IptAttribute {
 export interface ItransferProductRequest {
   p_transfer: IpdTransfer;
   pt_product: IptProduct[];
-  ptp_attribute: IptAttribute[];
+  ptp_variant: IptAttribute[];
 }
 
 export interface IaddInventoryProduct {

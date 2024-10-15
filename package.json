@@ -6,7 +6,8 @@
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts"
+    "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts",
+    "worker": "ts-node-dev --respawn --transpile-only ./src/utils/lib/emailWorker.ts"
   },
   "author": "Srabon Barua",
   "license": "ISC",
@@ -31,6 +32,7 @@
     "aws-sdk": "^2.1691.0",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^5.19.0",
     "canvas": "^2.11.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -49,6 +51,7 @@
     "mysql2": "^3.11.2",
     "nodemailer": "^6.9.15",
     "qrcode": "^1.5.4",
+    "redis": "^4.7.0",
     "slug": "^9.1.0",
     "uuid": "^10.0.0"
   }

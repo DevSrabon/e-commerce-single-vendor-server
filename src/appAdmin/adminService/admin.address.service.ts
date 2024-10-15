@@ -166,7 +166,7 @@ class AdminAddressService extends AdminAbstractServices {
   // create sub city
   public async createSubCity(req: Request) {
     const { name_en, name_ar, city_id } = req.body;
-
+    console.log({ name_en, name_ar, city_id });
     const data = await this.db("sub_city").insert({
       scit_cit_id: city_id,
       scit_name_ar: name_ar,

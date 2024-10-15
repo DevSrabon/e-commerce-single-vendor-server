@@ -1,3 +1,4 @@
+import { Request } from "express";
 import { IEcommCustomer } from "../../appEcommerce/ecommUtils/ecommTypes/ecommCustomerTypes";
 import config from "../../utils/config/config";
 import Lib from "../../utils/lib/lib";
@@ -197,6 +198,15 @@ class CommonService extends CommonAbstractServices {
       .where("ec_email", email);
 
     return checkCustomer;
+  }
+
+  public async getAllCurrencies(req: Request) {
+    const currencies = await this.db("currency").select("*").first();
+    return {
+      success: true,
+      data: currencies,
+      message: "Currencies retrieved successfully",
+    };
   }
 }
 

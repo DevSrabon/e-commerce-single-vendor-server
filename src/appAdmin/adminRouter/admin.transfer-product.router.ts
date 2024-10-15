@@ -1,16 +1,16 @@
-import AdminAbstractRouter from '../adminAbstracts/admin.abstract.router';
-import AdminTransferProductController from '../adminController/admin.transfer-product.controller';
+import AdminAbstractRouter from "../adminAbstracts/admin.abstract.router";
+import AdminTransferProductController from "../adminController/admin.transfer-product.controller";
 
 class AdminTransferProductRouter extends AdminAbstractRouter {
   private transferPdController = new AdminTransferProductController();
   constructor() {
     super();
-    this.callrouter();
+    this.callRouter();
   }
 
-  private callrouter() {
+  private callRouter() {
     this.router
-      .route('/')
+      .route("/")
       .get(this.transferPdController.getAllTransferListController)
       .post(
         this.productValidator.addTransferProductValidator(),
@@ -18,19 +18,19 @@ class AdminTransferProductRouter extends AdminAbstractRouter {
       );
     // get single transfer update single transfer
     this.router
-      .route('/:id')
+      .route("/:id")
       .get(
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide valid transfer id'
+          "id",
+          "Provide valid transfer id"
         ),
         this.transferPdController.getSingleTransferController
       )
       .patch(
         this.authChecker.authChecker,
         this.commonValidator.singleParamInputValidator(
-          'id',
-          'Provide valid transfer id'
+          "id",
+          "Provide valid transfer id"
         ),
 
         this.transferPdController.updateTransferController
