@@ -125,7 +125,7 @@ class EcommReviewService extends EcommAbstractServices {
         "ep.p_images as images"
       )
       .join("e_order as eo", "eod.eod_eo_id", "eo.eo_id")
-      .join("e_product_view as ep", "eod.eod_ep_id", "ep.ep_id")
+      .join("product_view as ep", "eod.eod_ep_id", "ep.ep_id")
       .leftJoin("product_review as epr", "eod.eod_ep_id", "epr.ep_id")
       .andWhere("eo.eo_status", "delivered")
       .andWhere("eo.eo_ec_id", ec_id)

@@ -1,5 +1,5 @@
-import { Request } from 'express';
-import AdminAbstractServices from '../adminAbstracts/admin.abstract.service';
+import { Request } from "express";
+import AdminAbstractServices from "../adminAbstracts/admin.abstract.service";
 
 class AdminEcommerceProductService extends AdminAbstractServices {
   constructor() {
@@ -10,36 +10,36 @@ class AdminEcommerceProductService extends AdminAbstractServices {
   public async addProductIntoEcommerceService(req: Request) {
     const { ep_p_id, ep_price, ep_sale_price, ep_details } = req.body;
 
-    const checkProduct = await this.db('product_view')
-      .select('p_name', 'available_stock')
+    const checkProduct = await this.db("product_view")
+      .select("p_name", "available_stock")
       .where({ p_id: ep_p_id });
 
     if (!checkProduct.length) {
       return {
         success: false,
-        message: 'Cannot find this product with this id',
+        message: "Cannot find this product with this id",
       };
     }
 
     if (!(checkProduct[0].available_stock > 0)) {
       return {
         success: false,
-        message: 'This product has not available stock, so you cannot add',
+        message: "This product has not available stock, so you cannot add",
       };
     }
 
-    const checkEProduct = await this.db('e_product')
-      .select('ep_price')
+    const checkEProduct = await this.db("e_product")
+      .select("ep_price")
       .where({ ep_p_id });
 
     if (checkEProduct.length) {
       return {
         success: false,
-        message: 'Already added this product into ecommerce',
+        message: "Already added this product into ecommerce",
       };
     }
 
-    const res = await this.db('e_product').insert({
+    const res = await this.db("e_product").insert({
       ep_p_id,
       ep_price,
       ep_sale_price,
@@ -49,12 +49,12 @@ class AdminEcommerceProductService extends AdminAbstractServices {
     if (res.length) {
       return {
         success: true,
-        message: 'Successfully product added into ecommerce',
+        message: "Successfully product added into ecommerce",
       };
     } else {
       return {
         success: false,
-        message: 'Cannot product add into ecommerce',
+        message: "Cannot product add into ecommerce",
       };
     }
   }
@@ -67,30 +67,30 @@ class AdminEcommerceProductService extends AdminAbstractServices {
 
     endDate.setDate(endDate.getDate() + 1);
 
-    const data = await this.db('e_product_view')
+    const data = await this.db("product_view")
       .select(
-        'ep_id',
-        'ep_status',
-        'p_id',
-        'p_name',
-        'ep_price',
-        'available_stock',
-        'p_images'
+        "ep_id",
+        "ep_status",
+        "p_id",
+        "p_name",
+        "ep_price",
+        "available_stock",
+        "p_images"
       )
       .where(function () {
         if (status) {
-          this.where('ep_status', status);
+          this.where("ep_status", status);
         }
         if (p_name) {
-          this.andWhere('p_name', 'Like', `%${p_name}%`);
+          this.andWhere("p_name", "Like", `%${p_name}%`);
         }
         if (cate_id) {
-          this.andWhereRaw('JSON_CONTAINS(categories, ?)', [
+          this.andWhereRaw("JSON_CONTAINS(categories, ?)", [
             `{"cate_id": ${cate_id}}`,
           ]);
         }
         if (from_date && to_date) {
-          this.andWhereBetween('p_created_at', [from_date, endDate]);
+          this.andWhereBetween("p_created_at", [from_date, endDate]);
         }
       });
 
@@ -103,26 +103,26 @@ class AdminEcommerceProductService extends AdminAbstractServices {
   // get single ecommerce product
   public async getSingleEcommerceProductService(req: Request) {
     const { id } = req.params;
-    const data = await this.db('e_product_view AS epv')
+    const data = await this.db("product_view AS epv")
       .select(
-        'epv.ep_id',
-        'epv.ep_price',
-        'epv.ep_sale_price',
-        'epv.ep_status',
-        'epv.ep_details',
-        'epv.p_id',
-        'epv.p_unit',
-        'epv.p_name',
-        'epv.p_slug',
-        'epv.p_tags',
-        'epv.available_stock',
-        'epv.categories',
-        'epv.p_images',
-        'epv.p_attribute',
-        'epv.p_created_at'
+        "epv.ep_id",
+        "epv.ep_price",
+        "epv.ep_sale_price",
+        "epv.ep_status",
+        "epv.ep_details",
+        "epv.p_id",
+        "epv.p_unit",
+        "epv.p_name",
+        "epv.p_slug",
+        "epv.p_tags",
+        "epv.available_stock",
+        "epv.categories",
+        "epv.p_images",
+        "epv.p_attribute",
+        "epv.p_created_at"
       )
 
-      .where('epv.ep_id', id);
+      .where("epv.ep_id", id);
 
     let pAttb = data[0]?.p_attribute;
     let pAttb2: any = [];
@@ -151,10 +151,10 @@ class AdminEcommerceProductService extends AdminAbstractServices {
       }
     }
 
-    const inventoryAttbdata = await this.db('e_product_view AS epv')
-      .select('iv.inventory_attribute')
-      .join('inventory_view AS iv', 'epv.p_id', 'iv.i_p_id')
-      .where('epv.ep_id', id);
+    const inventoryAttbdata = await this.db("product_view AS epv")
+      .select("iv.inventory_attribute")
+      .join("inventory_view AS iv", "epv.p_id", "iv.i_p_id")
+      .where("epv.ep_id", id);
 
     const { categories, p_images, p_attribute, ...rest } = data[0];
 
@@ -172,7 +172,7 @@ class AdminEcommerceProductService extends AdminAbstractServices {
     } else {
       return {
         success: false,
-        message: 'Ecommerce product not found with this e-product id',
+        message: "Ecommerce product not found with this e-product id",
       };
     }
   }
@@ -181,30 +181,30 @@ class AdminEcommerceProductService extends AdminAbstractServices {
   public async updateEcommerceProductService(req: Request) {
     const { id } = req.params;
 
-    const checkEProduct = await this.db('e_product')
-      .select('ep_id')
+    const checkEProduct = await this.db("e_product")
+      .select("ep_id")
       .where({ ep_id: id });
 
     if (!checkEProduct.length) {
       return {
         success: false,
-        message: 'Ecommerce product not found with this product id',
+        message: "Ecommerce product not found with this product id",
       };
     }
 
-    const pdRes = await this.db('e_product')
+    const pdRes = await this.db("e_product")
       .update(req.body)
       .where({ ep_id: id });
 
     if (pdRes) {
       return {
         success: true,
-        message: 'Ecommerce product update successfully',
+        message: "Ecommerce product update successfully",
       };
     } else {
       return {
         success: false,
-        message: 'Ecommerce product cannot update at this moment',
+        message: "Ecommerce product cannot update at this moment",
       };
     }
   }

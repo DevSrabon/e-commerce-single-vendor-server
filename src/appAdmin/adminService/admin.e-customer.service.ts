@@ -111,7 +111,7 @@ class AdminEcustomerService extends AdminAbstractServices {
         "comment",
         "status"
       )
-      .join("e_product_view AS epv", "epr.ep_id", "epv.ep_id")
+      .join("product_view AS epv", "epr.ep_id", "epv.ep_id")
       .join("e_customer AS ec", "epr.ec_id", "ec.ec_id")
       .where("epr.ec_id", id);
 
@@ -129,7 +129,7 @@ class AdminEcustomerService extends AdminAbstractServices {
         "ec_name",
         "ec_image"
       )
-      .join("e_product_view AS epv", "qna.epq_ep_id", "epv.ep_id")
+      .join("product_view AS epv", "qna.epq_ep_id", "epv.ep_id")
       .join("e_customer AS ec", "qna.epq_ec_id", "ec.ec_id")
       .where("qna.epq_ec_id", id);
 

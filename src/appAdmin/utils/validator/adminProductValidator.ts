@@ -11,6 +11,10 @@ class AdminProductValidator {
       body("p_name_ar", "Provide product name in arabic")
         .exists({ checkFalsy: false })
         .isString(),
+      body("stock_alarm", "Provide stock alarm")
+        .isInt()
+        .exists({ checkFalsy: false }),
+      body("is_featured", "Provide is featured").isIn(["0", "1"]).exists(),
       body("colors", "Provide colors array").exists(),
       body("sizes", "Provide sizes array").exists(),
       body("variants", "Provide variants array").exists(),
@@ -21,9 +25,6 @@ class AdminProductValidator {
         .exists({ checkFalsy: false })
         .isString(),
       body("category.*", "Provide category array").isArray().notEmpty(),
-      body("attribute_value.*", "Provide attribute value array")
-        .isArray()
-        .notEmpty(),
     ];
   }
 

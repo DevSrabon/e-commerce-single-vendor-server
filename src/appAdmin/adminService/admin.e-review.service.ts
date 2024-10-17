@@ -34,7 +34,7 @@ class AdminEcommerceReviewService extends AdminAbstractServices {
         "comment",
         "status"
       )
-      .join("e_product_view AS epv", "epr.ep_id", "epv.ep_id")
+      .join("product_view AS epv", "epr.ep_id", "epv.ep_id")
       .join("e_customer AS ec", "epr.ec_id", "ec.ec_id")
       .where(function () {
         if (from_date && to_date) {
@@ -51,7 +51,7 @@ class AdminEcommerceReviewService extends AdminAbstractServices {
 
     const count = await this.db("product_review AS epr")
       .count("epr.id AS total")
-      .join("e_product_view AS epv", "epr.ep_id", "epv.ep_id")
+      .join("product_view AS epv", "epr.ep_id", "epv.ep_id")
       .join("e_customer AS ec", "epr.ec_id", "ec.ec_id")
       .where(function () {
         if (from_date && to_date) {
@@ -90,7 +90,7 @@ class AdminEcommerceReviewService extends AdminAbstractServices {
         "status",
         "created_at"
       )
-      .join("e_product_view AS epv", "epr.ep_id", "epv.ep_id")
+      .join("product_view AS epv", "epr.ep_id", "epv.ep_id")
       .join("e_customer AS ec", "epr.ec_id", "ec.ec_id")
       .leftJoin("image AS epri", "epr.id", "epri.epri_id")
       .where("epr.id", id);

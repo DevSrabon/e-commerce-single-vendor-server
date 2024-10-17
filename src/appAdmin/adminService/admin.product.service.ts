@@ -50,6 +50,8 @@ class AdminProductService extends AdminAbstractServices {
       category,
       colors,
       sizes,
+      stock_alarm,
+      is_featured = 0,
       variants,
       p_unit,
     } = req.body;
@@ -116,7 +118,8 @@ class AdminProductService extends AdminAbstractServices {
         p_details_en,
         p_details_ar,
         p_unit,
-        is_featured: 0,
+        stock_alarm,
+        is_featured,
       });
 
       const productId = productRes[0];

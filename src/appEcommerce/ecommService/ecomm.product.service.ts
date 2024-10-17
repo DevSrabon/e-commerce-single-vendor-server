@@ -1,5 +1,5 @@
-import EcommAbstractServices from '../ecommAbstracts/ecomm.abstract.service';
-import { Request } from 'express';
+import { Request } from "express";
+import EcommAbstractServices from "../ecommAbstracts/ecomm.abstract.service";
 
 class EcommProductService extends EcommAbstractServices {
   constructor() {
@@ -9,62 +9,71 @@ class EcommProductService extends EcommAbstractServices {
   // Get ecommerce product service
   public async getEcommProductService(req: Request) {
     const { category, limit, skip, tag, shortBy, serialBy, name } = req.query;
-    let orderBy: string = 'epv.p_name';
-    let serial: string = 'asc';
+    let orderBy: string = "p.p_name_en";
+    let serial: string = "asc";
     let total: number = 0;
     if (shortBy) {
-      orderBy = `epv.${shortBy}`;
+      orderBy = `p.${shortBy}`;
     }
     if (serialBy) {
       serial = serialBy as string;
     }
-    const query = this.db('e_product_view as epv')
+    const query = this.db("product_view as p")
       .select(
-        'epv.ep_id as id',
-        'epv.p_name as name',
-        'epv.p_organic as organic',
-        'epv.ep_price as price',
-        'epv.p_images as images',
-        'epv.p_attribute as attribute',
-        'epv.ep_sale_price as sale_price',
-        'epv.ep_details as details',
-        'epv.p_unit as unit',
-        'epv.p_slug as slug',
-        'epv.available_stock',
-        'epv.p_tags as tags'
+        // "p.ep_id as id",
+        // "p.p_name_en as name",
+        // "p.p_organic as organic",
+        // "p.ep_price as price",
+        // "p.p_images as images",
+        // "p.p_attribute as attribute",
+        // "p.ep_sale_price as sale_price",
+        // "p.ep_details as details",
+        // "p.p_unit as unit",
+        // "p.p_slug as slug",
+        // "p.available_stock",
+        // "p.p_tags as tags"
+        "*"
       )
       .andWhere((qb) => {
-        qb.andWhere('epv.ep_status', 1);
+        qb.andWhere("p.p_status", 1);
 
         if (tag) {
-          qb.andWhere('epv.p_tags', 'like', `%${tag}%`);
+          qb.andWhere("p.p_tags", "like", `%${tag}%`);
         }
         if (name) {
-          qb.andWhere('epv.p_name', 'like', `%${name}%`);
+          qb.andWhere("p.p_name_en", "like", `%${name}%`).orWhere(
+            "p.p_name_ar",
+            "like",
+            `%${name}%`
+          );
         }
       })
       .orderBy(orderBy, serial);
 
-    const totalQuery = this.db('e_product_view as epv')
-      .count('epv.ep_id as total')
+    const totalQuery = this.db("product_view as p")
+      .count("p.ep_id as total")
       .andWhere((qb) => {
         if (tag) {
-          qb.andWhere('epv.p_tags', 'like', `%${tag}%`);
+          qb.andWhere("p.p_tags", "like", `%${tag}%`);
         }
         if (name) {
-          qb.andWhere('epv.p_name', 'like', `%${name}%`);
+          qb.andWhere("p.p_name_en", "like", `%${name}%`).orWhere(
+            "p.p_name_ar",
+            "like",
+            `%${name}%`
+          );
         }
       });
 
     if (category) {
       query
-        .leftJoin('product_category as pc', 'epv.p_id', 'pc.pc_p_id')
-        .leftJoin('category as c', 'pc.pc_cate_id', 'c.cate_id')
-        .andWhere('c.cate_slug', category);
+        .leftJoin("product_category as pc", "p.p_id", "pc.pc_p_id")
+        .leftJoin("category as c", "pc.pc_cate_id", "c.cate_id")
+        .andWhere("c.cate_slug", category);
       totalQuery
-        .leftJoin('product_category as pc', 'epv.p_id', 'pc.pc_p_id')
-        .leftJoin('category as c', 'pc.pc_cate_id', 'c.cate_id')
-        .andWhere('c.cate_slug', category);
+        .leftJoin("product_category as pc", "p.p_id", "pc.pc_p_id")
+        .leftJoin("category as c", "pc.pc_cate_id", "c.cate_id")
+        .andWhere("c.cate_slug", category);
     }
 
     if (limit && skip) {
@@ -84,29 +93,30 @@ class EcommProductService extends EcommAbstractServices {
 
   // get Single product service
   public async getEcommSingleProduct(product: string) {
-    const data = await this.db('e_product_view')
+    const data = await this.db("product_view")
       .select(
-        'ep_id as id',
-        'p_name as name',
-        'p_organic as organic',
-        'p_images as images',
-        'p_slug as slug',
-        'ep_price as price',
-        'ep_sale_price as sale_price',
-        'ep_details as details',
-        'p_unit as unit',
-        'available_stock',
-        'p_tags as tags',
-        'categories',
-        'p_attribute as attribute'
+        "*"
+        // "ep_id as id",
+        // "p_name_en as name",
+        // "p_organic as organic",
+        // "p_images as images",
+        // "p_slug as slug",
+        // "ep_price as price",
+        // "ep_sale_price as sale_price",
+        // "ep_details as details",
+        // "p_unit as unit",
+        // "available_stock",
+        // "p_tags as tags",
+        // "categories",
+        // "p_attribute as attribute"
       )
-      .andWhere('ep_status', 1)
-      .andWhere('p_slug', product);
+      .andWhere("p_status", 1)
+      .andWhere("p_slug", product);
 
     if (!data.length) {
       return {
         success: false,
-        message: 'No product found',
+        message: "No product found",
       };
     }
 
@@ -118,11 +128,11 @@ class EcommProductService extends EcommAbstractServices {
 
   // get product for order by id array
   public async getProductForOrder(ids: number[]) {
-    const data = await this.db('e_product_view')
-      .select('ep_id', 'ep_sale_price', 'available_stock', 'p_name')
-      .whereIn('ep_id', ids)
-      .andWhere('ep_status', 1)
-      .andWhereNot('available_stock', null);
+    const data = await this.db("product_view")
+      .select("ep_id", "ep_sale_price", "available_stock", "p_name_en")
+      .whereIn("ep_id", ids)
+      .andWhere("p_status", 1)
+      .andWhereNot("available_stock", null);
     return data;
   }
 }

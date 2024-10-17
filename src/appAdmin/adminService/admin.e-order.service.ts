@@ -152,7 +152,7 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
       .leftJoin("address_view AS av", "esa.ecsa_ar_id", "av.area_id")
       .leftJoin("e_order_details AS eod", "eo.eo_id", "eod.eod_eo_id")
 
-      .leftJoin("e_product_view AS epv", "eod.eod_ep_id", "epv.ep_id")
+      .leftJoin("product_view AS epv", "eod.eod_ep_id", "epv.ep_id")
       .leftJoin("attribute_value AS atv", "eod.eod_av_id", "atv.av_id")
       .where("eo.eo_id", id);
     console.log({ data });
