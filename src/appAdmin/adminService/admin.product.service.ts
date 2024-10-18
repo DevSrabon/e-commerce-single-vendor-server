@@ -50,10 +50,12 @@ class AdminProductService extends AdminAbstractServices {
       category,
       colors,
       sizes,
+      quantity,
       stock_alarm,
       is_featured = 0,
       variants,
     } = req.body;
+
     const parsedVariants = variants ? JSON.parse(variants) : [];
     const parsedColor = colors ? JSON.parse(colors) : [];
     const parsedSizes = sizes ? JSON.parse(sizes) : [];
@@ -239,7 +241,7 @@ class AdminProductService extends AdminAbstractServices {
       await trx("inventory").insert({
         i_w_id: w_id,
         i_p_id: productId,
-        i_quantity_available: p_unit,
+        i_quantity_available: quantity,
       });
 
       // Insert parsedVariants
@@ -389,6 +391,7 @@ class AdminProductService extends AdminAbstractServices {
       added_sizes,
       removed_sizes,
       remove_color_photos,
+      quantity,
       ...rest
     } = req.body;
 
@@ -423,7 +426,6 @@ class AdminProductService extends AdminAbstractServices {
     const removedSizes: number[] = removed_sizes
       ? JSON.parse(removed_sizes)
       : [];
-    console.log(req.body, "request body");
 
     const checkProduct = await this.db("product")
       .select("p_name_en")
@@ -446,7 +448,11 @@ class AdminProductService extends AdminAbstractServices {
           newImage.push({ pi_image: item.filename, pi_p_id: id });
         }
       });
-
+      if (quantity) {
+        await trx("inventory")
+          .update({ i_quantity_available: quantity })
+          .where({ i_p_id: id });
+      }
       //  ========== Category ==============
       if (removedCategory.length) {
         await trx("product_category")
