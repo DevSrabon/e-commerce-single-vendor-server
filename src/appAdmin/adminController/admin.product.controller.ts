@@ -44,36 +44,10 @@ class AdminProductController extends AdminAbstractController {
     }
   );
 
-  // get product controller which is not add in ecommerce
-  public getProductNotInEcommerceController = this.asyncWrapper.wrap(
-    async (req: Request, res: Response) => {
-      const data = await this.productService.getProductNotInEcommerceProduct(
-        req
-      );
-      if (data.success) {
-        res.status(201).json(data);
-      } else {
-        res.status(400).json(data);
-      }
-    }
-  );
-
   // get attributes by product id
   public getAttributesByProductController = this.asyncWrapper.wrap(
     async (req: Request, res: Response) => {
       const data = await this.productService.getAttributesByProduct(req);
-      if (data.success) {
-        res.status(201).json(data);
-      } else {
-        res.status(400).json(data);
-      }
-    }
-  );
-
-  // get all product by supplier id
-  public getAllProductBySupplierController = this.asyncWrapper.wrap(
-    async (req: Request, res: Response) => {
-      const data = await this.productService.getAllProductBySupplier(req);
       if (data.success) {
         res.status(201).json(data);
       } else {

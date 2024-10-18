@@ -53,7 +53,6 @@ class AdminProductService extends AdminAbstractServices {
       stock_alarm,
       is_featured = 0,
       variants,
-      p_unit,
     } = req.body;
     const parsedVariants = variants ? JSON.parse(variants) : [];
     const parsedColor = colors ? JSON.parse(colors) : [];
@@ -117,7 +116,6 @@ class AdminProductService extends AdminAbstractServices {
         p_tags,
         p_details_en,
         p_details_ar,
-        p_unit,
         stock_alarm,
         is_featured,
       });
@@ -290,6 +288,90 @@ class AdminProductService extends AdminAbstractServices {
         },
       };
     });
+  }
+
+  public async getAllProduct(req: Request) {
+    const {
+      status,
+      cate_id,
+      from_date,
+      to_date,
+      p_name_en,
+      p_name_ar,
+      limit,
+      skip,
+      order_by = "p_created_at",
+      according_order = "dec",
+    } = req.query;
+
+    const endDate = new Date(to_date as string);
+    endDate.setDate(endDate.getDate() + 1);
+    const dtbs = this.db("product_view");
+
+    if (limit) {
+      dtbs.limit(parseInt(limit as string));
+    }
+    if (skip) {
+      dtbs.offset(parseInt(skip as string));
+    }
+
+    const data = await dtbs
+      .select(
+        "p_id",
+        "p_name_en",
+        "p_name_ar",
+        "p_status",
+        "categories",
+        "p_images",
+        "is_featured"
+      )
+      .where(function () {
+        if (status) {
+          this.andWhere("p_status", status);
+        }
+
+        if (cate_id) {
+          this.andWhereRaw("JSON_CONTAINS(categories, ?)", [
+            `{"cate_id":${cate_id}}`,
+          ]);
+        }
+
+        if (p_name_en) {
+          this.andWhere("p_name_en", "like", `%${p_name_en}%`);
+        }
+        if (p_name_ar) {
+          this.andWhere("p_name_ar", "like", `%${p_name_ar}%`);
+        }
+        if (from_date && to_date) {
+          this.whereBetween("p_created_at", [from_date as string, endDate]);
+        }
+      })
+      .orderBy(order_by as string, according_order as string);
+
+    const count = await this.db("product_view")
+      .count("p_id AS total")
+      .where(function () {
+        if (status) {
+          this.andWhere("p_status", status);
+        }
+        if (cate_id) {
+          this.andWhereRaw("JSON_CONTAINS(categories, ?)", [
+            `{"cate_id":${cate_id}}`,
+          ]);
+        }
+        if (p_name_en) {
+          this.andWhere("p_name_en", "like", `%${p_name_en}%`);
+        }
+        if (from_date && to_date) {
+          this.whereBetween("p_created_at", [from_date as string, endDate]);
+        }
+      });
+
+    return {
+      success: true,
+      data,
+      total: count[0].total,
+    };
   }
 
   // update a product service
@@ -697,112 +779,6 @@ class AdminProductService extends AdminAbstractServices {
         message: "Product updated!",
       };
     });
-  }
-
-  public async getAllProduct(req: Request) {
-    const {
-      status,
-      cate_id,
-      from_date,
-      to_date,
-      p_name_en,
-      p_name_ar,
-      limit,
-      skip,
-      order_by = "p_id",
-      according_order = "asc",
-    } = req.query;
-
-    const endDate = new Date(to_date as string);
-    endDate.setDate(endDate.getDate() + 1);
-    const dtbs = this.db("product_view");
-
-    if (limit) {
-      dtbs.limit(parseInt(limit as string));
-    }
-    if (skip) {
-      dtbs.offset(parseInt(skip as string));
-    }
-
-    const data = await dtbs
-      .select("p_id", "p_name_en", "p_name_ar", "p_status", "categories")
-      .where(function () {
-        if (status) {
-          this.andWhere("p_status", status);
-        }
-
-        if (cate_id) {
-          this.andWhereRaw("JSON_CONTAINS(categories, ?)", [
-            `{"cate_id":${cate_id}}`,
-          ]);
-        }
-
-        if (p_name_en) {
-          this.andWhere("p_name_en", "like", `%${p_name_en}%`);
-        }
-
-        if (from_date && to_date) {
-          this.whereBetween("p_created_at", [from_date as string, endDate]);
-        }
-      })
-      .orderBy(order_by as string, according_order as string);
-
-    const count = await this.db("product_view")
-      .count("p_id AS total")
-      .where(function () {
-        if (status) {
-          this.andWhere("p_status", status);
-        }
-        if (cate_id) {
-          this.andWhereRaw("JSON_CONTAINS(categories, ?)", [
-            `{"cate_id":${cate_id}}`,
-          ]);
-        }
-        if (p_name_en) {
-          this.andWhere("p_name_en", "like", `%${p_name_en}%`);
-        }
-        if (from_date && to_date) {
-          this.whereBetween("p_created_at", [from_date as string, endDate]);
-        }
-      });
-
-    return {
-      success: true,
-      data,
-      total: count[0].total,
-    };
-  }
-
-  // get all product by supplier
-  public async getAllProductBySupplier(req: Request) {
-    const { supplierId } = req.params;
-
-    const dtbs = this.db("product_view");
-    const data = await dtbs
-      .select("p_id", "p_name")
-      .andWhere("p_status", 1)
-      .andWhere("s_id", supplierId);
-
-    return {
-      success: true,
-      data,
-    };
-  }
-
-  // get all product which is not include in ecommerce
-  public async getProductNotInEcommerceProduct(req: Request) {
-    const eProduct = await this.db("e_product").select("ep_p_id");
-    const ids = eProduct.map((item) => item.ep_p_id);
-
-    const data = await this.db("product_view AS pv")
-      .select("pv.p_id", "pv.p_name", "pv.available_stock")
-      .andWhere("pv.p_status", 1)
-      .whereNotIn("pv.p_Id", ids);
-
-    return {
-      success: true,
-      data,
-    };
   }
 
   // get attributes by product

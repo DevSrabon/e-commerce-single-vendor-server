@@ -19,22 +19,6 @@ class AdminProductRouter extends AdminAbstractRouter {
       )
       .get(this.productController.getProductController);
 
-    // get all product which has not include in ecommerce
-    this.router
-      .route("/not-include-ecommerce")
-      .get(this.productController.getProductNotInEcommerceController);
-
-    // get all product by supplier id
-    this.router
-      .route("/by/:supplierId")
-      .get(
-        this.commonValidator.singleParamInputValidator(
-          "supplierId",
-          "Provide valid supplier id"
-        ),
-        this.productController.getAllProductBySupplierController
-      );
-
     // get attribute by single product
     this.router
       .route("/attributes/by/:productId")

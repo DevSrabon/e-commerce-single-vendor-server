@@ -14,6 +14,7 @@ import AdminWareHouseRouter from "./adminRouter/admin.warehouse.router";
 import AdminAbstractRouter from "./adminAbstracts/admin.abstract.router";
 import AdminColorRouter from "./adminRouter/admin.color.router";
 import AdminCurrencyRouter from "./adminRouter/admin.currency.router";
+import AdminDashboardRouter from "./adminRouter/admin.dashboard.router";
 import AdminInventoryRouter from "./adminRouter/admin.inventory.router";
 import AdminMailRouter from "./adminRouter/admin.mail.router";
 import AdminOfferRouter from "./adminRouter/admin.offer.router";
@@ -42,7 +43,7 @@ class AdminRouter extends AdminAbstractRouter {
   private adminOffer = new AdminOfferRouter();
   private adminMail = new AdminMailRouter();
   private adminCurrency = new AdminCurrencyRouter();
-
+  private adminDashboardRouter = new AdminDashboardRouter();
   constructor() {
     super();
     this.callRouter();
@@ -72,6 +73,7 @@ class AdminRouter extends AdminAbstractRouter {
     this.AdminRouter.use("/offer", this.adminOffer.router);
     this.AdminRouter.use("/mail", this.adminMail.router);
     this.AdminRouter.use("/currency", this.adminCurrency.router);
+    this.AdminRouter.use("/dashboard", this.adminDashboardRouter.router);
   }
 }
 export default AdminRouter;
