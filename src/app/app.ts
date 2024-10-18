@@ -45,7 +45,7 @@ class App {
     // Enable CORS for trusted origins
     this.app.use(
       cors({
-        origin: "*",
+        origin: this.origin,
         credentials: true,
       })
     );

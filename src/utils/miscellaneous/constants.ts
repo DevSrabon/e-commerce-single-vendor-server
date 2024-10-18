@@ -7,13 +7,7 @@ export const origin: string[] = [
   "http://192.168.0.117:3000",
   "http://192.168.0.117:3001",
   "http://192.168.0.240:3000",
-  "https://www.admin.memart.online",
-  "www.admin.memart.online",
-  "https://www.admin.memart.online",
-  "https://www.memart.online",
-  "admin.memart.online",
-  "www.memart.online",
-  "https://admin.memart.online",
+  "https://saba-al-wadu-ecommerce-admin.vercel.app",
 ];
 
 export const allowedImageTypes: string[] = [
