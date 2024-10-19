@@ -92,6 +92,7 @@ class App {
 
     // Use the API routes
     this.app.use("/api/v1", new RootRouter().v1Router);
+
   }
 
   // Handle 404 errors for unknown routes

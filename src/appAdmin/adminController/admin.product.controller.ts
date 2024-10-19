@@ -1,9 +1,35 @@
 import { Request, Response } from "express";
+import CommonService from "../../common/commonService/common.service";
 import AdminAbstractController from "../adminAbstracts/admin.abstract.controller";
 import AdminProductService from "../adminService/admin.product.service";
+const cartItems = [
+  {
+    name: "DSLR Camera",
+    images: [
+      "https://dfstudio-d420.kxcdn.com/wordpress/wp-content/uploads/2019/06/digital_camera_photo-1080x675.jpg",
+    ],
+    description: "DSLR Camera with 4k resolution",
+    orderId: "12345",
+    price: 2000,
+    quantity: 1,
+  },
+  {
+    name: "Camera Tripod",
+    images: ["https://cdn.sandberg.world/products/images/lg/134-26_lg.jpg"],
+    description: "Sturdy tripod for your camera",
+    orderId: "12346",
+    price: 100,
+    quantity: 2,
+  },
+];
+
+const deliveryCharge = 50; // in USD
+const taxAmount = 10; // in USD
+const currency = "aed";
 
 class AdminProductController extends AdminAbstractController {
   private productService = new AdminProductService();
+  private commonService = new CommonService();
   constructor() {
     super();
   }
@@ -23,12 +49,44 @@ class AdminProductController extends AdminAbstractController {
   // get a single product controller
   public getSingleProductController = this.asyncWrapper.wrap(
     async (req: Request, res: Response) => {
-      const data = await this.productService.getSingleProduct(req);
-      if (data.success) {
-        res.status(201).json(data);
-      } else {
-        this.error(data.message, 403);
-      }
+      // const data = await this.productService.getSingleProduct(req);
+      const data = await this.commonService.makeStripPayment({
+        items: [
+          {
+            name: "DSLR Camera",
+            amount: 200, // Price in major currency unit (e.g., USD)
+            currency: "usd",
+            quantity: 1,
+            description: "DSLR Camera with 4k resolution",
+            image:
+              "https://dfstudio-d420.kxcdn.com/wordpress/wp-content/uploads/2019/06/digital_camera_photo-1080x675.jpg",
+          },
+          {
+            name: "Tripod",
+            amount: 100, // Price in major currency unit
+            currency: "usd",
+            quantity: 2,
+            description: "High-quality camera tripod",
+            image: "https://example.com/tripod.jpg",
+          },
+        ],
+        discount: 10, // 10% discount
+        currency: "usd",
+        deliveryCharge: 50, // Optional delivery charge
+        taxAmount: 15, // Optional tax amount
+        customer: {
+          name: "John Doe",
+          email: "john@example.com",
+          address: "123 Main St, Springfield, USA",
+        },
+      });
+      console.log("🚀 ~ AdminProductController ~ data:", data);
+      res.send(data);
+      // if (data.success) {
+      //   res.status(201).json(data);
+      // } else {
+      //   this.error(data.message, 403);
+      // }
     }
   );
 

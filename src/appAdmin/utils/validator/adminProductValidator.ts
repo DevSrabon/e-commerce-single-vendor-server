@@ -12,7 +12,7 @@ class AdminProductValidator {
         .exists({ checkFalsy: false })
         .isString(),
       body("quantity", "Provide product quantity").isInt().exists(),
-      body("stock_alarm", "Provide stock alarm")
+      body("stock_alert", "Provide stock alarm")
         .isInt()
         .exists({ checkFalsy: false }),
       body("is_featured", "Provide is featured").isIn(["0", "1"]).exists(),

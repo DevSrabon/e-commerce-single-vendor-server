@@ -21,7 +21,7 @@ class AdminDashboardService extends AdminAbstractServices {
 
     const stockAlarmProducts = await this.db("product_view")
       .select("p_id", "p_name_en", "p_name_ar", "available_stock", "all_images")
-      .whereRaw("available_stock <= stock_alarm")
+      .whereRaw("available_stock <= stock_alert")
       .limit(20);
 
     // Fetch total sales for the last 6 months
@@ -73,7 +73,7 @@ class AdminDashboardService extends AdminAbstractServices {
       message: "Dashboard data retrieved successfully",
       data: {
         ...dashboardData,
-        stock_alarm_products: stockAlarmProducts, // Add low-stock products
+        stock_alert_products: stockAlarmProducts, // Add low-stock products
         monthlySales: monthlySales[0],
         productInformation,
         bestSellingProducts,

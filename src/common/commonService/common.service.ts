@@ -1,4 +1,5 @@
 import { Request } from "express";
+import { Stripe } from "stripe";
 import { IEcommCustomer } from "../../appEcommerce/ecommUtils/ecommTypes/ecommCustomerTypes";
 import config from "../../utils/config/config";
 import Lib from "../../utils/lib/lib";
@@ -206,6 +207,197 @@ class CommonService extends CommonAbstractServices {
       success: true,
       data: currencies,
       message: "Currencies retrieved successfully",
+    };
+  }
+
+  // public async makeStripPayment() {
+  //   // }[] //   image: string; //   quantity: number; //   name: string; //   currency: string; //   amount: number; // payload: {
+  //   const stripe = new Stripe(config.STRIPE_SECRET_KEY);
+
+  //   // Create a coupon for a 10% discount
+  //   // const coupon = await stripe.coupons.create({
+  //   //   percent_off: 10, // 10% discount
+  //   //   duration: "once", // Applies only once
+  //   // });
+
+  //   const coupon = await stripe.coupons.create({
+  //     amount_off: 500, // 500 cents = $5 off
+  //     currency: "aed",
+  //     duration: "once", // Applies only once
+  //   });
+
+  //   // Create the checkout session and apply the coupon
+  //   const session = await stripe.checkout.sessions.create({
+  //     payment_method_types: ["card"], // Enable card payments, including Google Pay
+  //     line_items: [
+  //       {
+  //         price_data: {
+  //           currency: "usd",
+  //           product_data: {
+  //             name: "DSLR Camera",
+  //             images: [
+  //               "https://dfstudio-d420.kxcdn.com/wordpress/wp-content/uploads/2019/06/digital_camera_photo-1080x675.jpg",
+  //             ],
+  //             description: "DSLR Camera with 4k resolution",
+  //             metadata: {
+  //               orderId: "12345",
+  //             },
+  //           },
+  //           unit_amount: 2000 * 100, // Product price in USD cents
+  //         },
+  //         quantity: 1,
+  //       },
+  //       {
+  //         price_data: {
+  //           currency: "usd",
+  //           product_data: {
+  //             name: "Delivery Charge",
+  //           },
+  //           unit_amount: 500 * 100, // Delivery charge in USD cents
+  //         },
+  //         quantity: 1,
+  //       },
+  //       {
+  //         price_data: {
+  //           currency: "usd",
+  //           product_data: {
+  //             name: "Taxes",
+  //           },
+  //           unit_amount: 100 * 100, // Tax amount in USD cents
+  //         },
+  //         quantity: 1,
+  //       },
+  //     ],
+  //     mode: "payment",
+  //     discounts: [
+  //       {
+  //         coupon: coupon.id, // Apply the coupon created programmatically
+  //       },
+  //     ],
+  //     success_url: "http://localhost:3000/success",
+  //     cancel_url: "http://localhost:3000/cancel",
+  //   });
+
+  //   return {
+  //     id: session.id,
+  //     redirect_url: session.url,
+  //   };
+  // }
+
+  public async makeStripPayment(payload: {
+    items: {
+      name: string;
+      amount: number;
+      currency: string;
+      quantity: number;
+      description?: string;
+      image?: string;
+    }[];
+    discount?: number;
+    currency: string;
+    deliveryCharge?: number;
+    taxAmount?: number;
+    customer: {
+      name: string;
+      email: string;
+      address: string;
+    };
+  }) {
+    const stripe = new Stripe(config.STRIPE_SECRET_KEY);
+
+    let coupon;
+
+    // If discount is provided, create a coupon dynamically
+    if (payload.discount) {
+      if (payload.discount > 0 && payload.discount <= 100) {
+        coupon = await stripe.coupons.create({
+          percent_off: payload.discount,
+          duration: "once",
+        });
+      } else if (payload.discount > 100) {
+        coupon = await stripe.coupons.create({
+          amount_off: payload.discount * 100,
+          currency: payload.currency,
+          duration: "once",
+        });
+      }
+    }
+
+    // Create line items dynamically from the payload
+    const lineItems: {
+      price_data: {
+        currency: string;
+        product_data: {
+          name: string;
+          images?: string[];
+          description?: string;
+        };
+        unit_amount: number;
+      };
+      quantity?: number;
+    }[] = payload.items.map((item) => ({
+      price_data: {
+        currency: item.currency,
+        product_data: {
+          name: item.name,
+          images: item.image ? [item.image] : [],
+          description: item.description || "",
+        },
+        unit_amount: item.amount * 100, // Convert to cents
+      },
+      quantity: item.quantity,
+    }));
+
+    // Optionally add delivery charge
+    if (payload.deliveryCharge && payload.deliveryCharge > 0) {
+      lineItems.push({
+        price_data: {
+          currency: payload.currency,
+          product_data: {
+            name: "Delivery Charge",
+          },
+          unit_amount: payload.deliveryCharge * 100, // Convert to cents
+        },
+        quantity: 1,
+      });
+    }
+
+    // Optionally add tax amount
+    if (payload.taxAmount && payload.taxAmount > 0) {
+      lineItems.push({
+        price_data: {
+          currency: payload.currency,
+          product_data: {
+            name: "Taxes",
+          },
+          unit_amount: payload.taxAmount * 100, // Convert to cents
+        },
+        quantity: 1,
+      });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: lineItems,
+      mode: "payment",
+      discounts: coupon ? [{ coupon: coupon.id }] : [],
+      success_url: `http://localhost:3000/success?order_id=1`,
+      cancel_url: `http://localhost:3000/cancel?order_id=1`,
+      metadata: {
+        order_id: "1", // Use a string for metadata
+        customer_name: payload.customer.name,
+      },
+      payment_intent_data: {
+        metadata: {
+          order_id: "1", // Also include it in the payment intent metadata
+        },
+      },
+    });
+
+    // Update the order with the Stripe session ID
+
+    return {
+      redirect_url: session.url,
     };
   }
 }

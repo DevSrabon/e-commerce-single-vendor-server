@@ -51,7 +51,7 @@ class AdminProductService extends AdminAbstractServices {
       colors,
       sizes,
       quantity,
-      stock_alarm,
+      stock_alert,
       is_featured = 0,
       variants,
     } = req.body;
@@ -118,7 +118,7 @@ class AdminProductService extends AdminAbstractServices {
         p_tags,
         p_details_en,
         p_details_ar,
-        stock_alarm,
+        stock_alert,
         is_featured,
       });
 
@@ -817,9 +817,6 @@ class AdminProductService extends AdminAbstractServices {
     }
 
     const { categories, p_images, ...rest } = data;
-
-    console.log({ categories });
-
     return {
       success: true,
       data: { ...rest, categories, p_images },
