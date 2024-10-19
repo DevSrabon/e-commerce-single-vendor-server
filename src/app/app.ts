@@ -4,7 +4,7 @@ import express, { Application, NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import morgan from "morgan";
-import ErrorHandler from "../common/middlewares/errorHandler/errorHandler";
+import ErrorHandler from "../features/common/middlewares/errorHandler/errorHandler";
 import CustomError from "../utils/lib/customError";
 import { origin } from "../utils/miscellaneous/constants";
 import RootRouter from "./router";
@@ -92,7 +92,6 @@ class App {
 
     // Use the API routes
     this.app.use("/api/v1", new RootRouter().v1Router);
-
   }
 
   // Handle 404 errors for unknown routes

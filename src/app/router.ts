@@ -1,7 +1,7 @@
 import { Router } from "express";
-import AdminRouter from "../appAdmin/admin.router";
-import EcommRouter from "../appEcommerce/ecomm.router";
-import CommonRouter from "../common/commonRouter/common.router";
+import AdminRouter from "../features/admin/admin.router";
+import CommonRouter from "../features/common/commonRouter/common.router";
+import EcommRouter from "../features/ecommerce/ecomm.router";
 import Webhooks from "../webhooks/webhook";
 
 class RootRouter {

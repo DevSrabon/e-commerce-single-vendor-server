@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import CommonAbstractServices from "../common/commonAbstract/common.abstract.service";
+import CommonAbstractServices from "../features/common/commonAbstract/common.abstract.service";
 
 class Webhooks extends CommonAbstractServices {
   constructor() {

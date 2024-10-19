@@ -1,6 +1,6 @@
 import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
-import CommonAbstractStorage from "../../common/commonAbstract/common.abstract.storage";
+import CommonAbstractStorage from "../../features/common/commonAbstract/common.abstract.storage";
 import config from "../config/config";
 import { ROOT_FOLDER } from "../miscellaneous/constants";
 
