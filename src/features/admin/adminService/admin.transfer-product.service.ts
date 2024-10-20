@@ -182,7 +182,7 @@ class AdminTransferProductService extends AdminAbstractServices {
       //       .select(
       //         "i.i_p_id"
       //         // "vp.ia_id",
-      //         // "vp.i_av_id",
+      //         // "vp.i_v_id",
       //         // "vp.ia_quantity_available"
       //       )
       //       // .join("variant_product AS vp", "i.i_id", "vp.p_id")
@@ -197,8 +197,8 @@ class AdminTransferProductService extends AdminAbstractServices {
       //       if (
       //         ptp_variant[i].ptp_p_id ===
       //           getTransferProductFrmInventoryAtbb[j].i_p_id &&
-      //         ptp_variant[i].ptpa_av_id ===
-      //           getTransferProductFrmInventoryAtbb[j].i_av_id
+      //         ptp_variant[i].ptpa_v_id ===
+      //           getTransferProductFrmInventoryAtbb[j].i_v_id
       //       ) {
       //         inventoryAttributes.push(getTransferProductFrmInventoryAtbb[j]);
       //       }
@@ -211,7 +211,7 @@ class AdminTransferProductService extends AdminAbstractServices {
       //     const removeItem = ptp_variant.find(
       //       (item) =>
       //         item.ptp_p_id === transferAtbItem.i_p_id &&
-      //         item.ptpa_av_id === transferAtbItem.i_av_id
+      //         item.ptpa_v_id === transferAtbItem.i_v_id
       //     );
 
       //     if (removeItem) {
@@ -237,7 +237,7 @@ class AdminTransferProductService extends AdminAbstractServices {
       //   //   for (let i = 0; i < ptp_variant.length; i++) {
       //   //     if (pt_product[h].ptp_p_id === ptp_variant[i].ptp_p_id) {
       //   //       ptp_attributeVal.push({
-      //   //         ptpa_av_id: ptp_variant[i].ptpa_av_id,
+      //   //         ptpa_v_id: ptp_variant[i].ptpa_v_id,
       //   //         ptpa_quantity: ptp_variant[i].ptpa_quantity,
       //   //         ptpa_ptp_id: ptInputRes[0] + h,
       //   //       });
@@ -312,7 +312,7 @@ class AdminTransferProductService extends AdminAbstractServices {
         "ptp.ptp_id",
         "ptp.ptp_quantity",
         "pta.ptpa_id",
-        "pta.ptpa_av_id",
+        "pta.ptpa_v_id",
         "pta.ptpa_quantity",
         "av.av_value"
       )
@@ -320,7 +320,7 @@ class AdminTransferProductService extends AdminAbstractServices {
       .leftJoin("p_transfer AS pt", "ptp.ptp_pt_id", "pt.pt_id")
       .leftJoin("warehouse AS wh", "pt.pt_from_w_id", "wh.w_id")
       .leftJoin("ptp_variant AS pta", "ptp.ptp_id", "pta.ptpa_ptp_id")
-      .leftJoin("attribute_value AS av", "pta.ptpa_av_id", "av.av_id")
+      .leftJoin("attribute_value AS av", "pta.ptpa_v_id", "av.v_id")
       .where("ptp.ptp_p_id", id);
 
     let data2: any = [];
@@ -333,7 +333,7 @@ class AdminTransferProductService extends AdminAbstractServices {
 
           data2[j].ptp_variant.push({
             ptpa_id: data[i].ptpa_id,
-            ptpa_av_id: data[i].ptpa_av_id,
+            ptpa_v_id: data[i].ptpa_v_id,
             ptpa_quantity: data[i].ptpa_quantity,
             av_value: data[i].av_value,
           });
@@ -358,7 +358,7 @@ class AdminTransferProductService extends AdminAbstractServices {
           ptp_variant: [
             {
               ptpa_id: data[i].ptpa_id,
-              ptpa_av_id: data[i].ptpa_av_id,
+              ptpa_v_id: data[i].ptpa_v_id,
               ptpa_quantity: data[i].ptpa_quantity,
               av_value: data[i].av_value,
             },

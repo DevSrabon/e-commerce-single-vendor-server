@@ -92,11 +92,11 @@ class AdminEcustomerService extends AdminAbstractServices {
 
     // all order by customer
     const orderData = await this.db("e_order AS eo")
-      .select("eo_id", "eo_status", "eo_grand_total", "eo.eo_created_at")
-      .join("e_customer AS ec", "eo.eo_ec_id", "ec.ec_id")
-      .join("ec_shipping_address AS esa", "eo.eo_ecsa_id", "esa.ecsa_id")
+      .select("id", "status", "grand_total", "eo.created_at")
+      .join("e_customer AS ec", "eo.ec_id", "ec.ec_id")
+      .join("ec_shipping_address AS esa", "eo.ecsa_id", "esa.ecsa_id")
       .join("address_view AS av", "esa.ecsa_ar_id", "av.area_id")
-      .where({ "eo.eo_ec_id": id });
+      .where({ "eo.ec_id": id });
 
     // review by customer
     const review = await this.db("product_review AS epr")
@@ -105,22 +105,22 @@ class AdminEcustomerService extends AdminAbstractServices {
         "ec_id",
         "ec_name",
         "ec_image",
-        "ep_id",
+        "p_id",
         "p_name",
         "rating",
         "comment",
         "status"
       )
-      .join("product_view AS epv", "epr.ep_id", "epv.ep_id")
+      .join("product_view AS epv", "epr.p_id", "epv.p_id")
       .join("e_customer AS ec", "epr.ec_id", "ec.ec_id")
       .where("epr.ec_id", id);
 
     // questions by customer
 
-    const question = await this.db("ep_qna AS qna")
+    const question = await this.db("p_qna AS qna")
       .select(
         "epq_id",
-        "epq_ep_id",
+        "epq_p_id",
         "epv.p_name",
         "epq_question",
         "epq_question_date",
@@ -129,7 +129,7 @@ class AdminEcustomerService extends AdminAbstractServices {
         "ec_name",
         "ec_image"
       )
-      .join("product_view AS epv", "qna.epq_ep_id", "epv.ep_id")
+      .join("product_view AS epv", "qna.epq_p_id", "epv.p_id")
       .join("e_customer AS ec", "qna.epq_ec_id", "ec.ec_id")
       .where("qna.epq_ec_id", id);
 

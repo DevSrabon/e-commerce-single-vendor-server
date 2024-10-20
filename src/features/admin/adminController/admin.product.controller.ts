@@ -39,7 +39,7 @@ class AdminProductController extends AdminAbstractController {
     async (req: Request, res: Response) => {
       const data = await this.productService.createProduct(req);
       if (data.success) {
-        res.status(201).json(data);
+        res.status(200).json(data);
       } else {
         this.error(data.message, 400);
       }
@@ -49,44 +49,44 @@ class AdminProductController extends AdminAbstractController {
   // get a single product controller
   public getSingleProductController = this.asyncWrapper.wrap(
     async (req: Request, res: Response) => {
-      // const data = await this.productService.getSingleProduct(req);
-      const data = await this.commonService.makeStripPayment({
-        items: [
-          {
-            name: "DSLR Camera",
-            amount: 200, // Price in major currency unit (e.g., USD)
-            currency: "usd",
-            quantity: 1,
-            description: "DSLR Camera with 4k resolution",
-            image:
-              "https://dfstudio-d420.kxcdn.com/wordpress/wp-content/uploads/2019/06/digital_camera_photo-1080x675.jpg",
-          },
-          {
-            name: "Tripod",
-            amount: 100, // Price in major currency unit
-            currency: "usd",
-            quantity: 2,
-            description: "High-quality camera tripod",
-            image: "https://example.com/tripod.jpg",
-          },
-        ],
-        discount: 10, // 10% discount
-        currency: "usd",
-        deliveryCharge: 50, // Optional delivery charge
-        taxAmount: 15, // Optional tax amount
-        customer: {
-          name: "John Doe",
-          email: "john@example.com",
-          address: "123 Main St, Springfield, USA",
-        },
-      });
-      console.log("🚀 ~ AdminProductController ~ data:", data);
-      res.send(data);
-      // if (data.success) {
-      //   res.status(201).json(data);
-      // } else {
-      //   this.error(data.message, 403);
-      // }
+      const data = await this.productService.getSingleProduct(req);
+      // const data = await this.commonService.makeStripePayment({
+      //   items: [
+      //     {
+      //       name: "DSLR Camera",
+      //       amount: 200, // Price in major currency unit (e.g., USD)
+      //       currency: "usd",
+      //       quantity: 1,
+      //       description: "DSLR Camera with 4k resolution",
+      //       image:
+      //         "https://dfstudio-d420.kxcdn.com/wordpress/wp-content/uploads/2019/06/digital_camera_photo-1080x675.jpg",
+      //     },
+      //     {
+      //       name: "Tripod",
+      //       amount: 100, // Price in major currency unit
+      //       currency: "usd",
+      //       quantity: 2,
+      //       description: "High-quality camera tripod",
+      //       image: "https://example.com/tripod.jpg",
+      //     },
+      //   ],
+      //   discount: 10, // 10% discount
+      //   currency: "usd",
+      //   deliveryCharge: 50, // Optional delivery charge
+      //   taxAmount: 15, // Optional tax amount
+      //   customer: {
+      //     name: "John Doe",
+      //     email: "john@example.com",
+      //     address: "123 Main St, Springfield, USA",
+      //   },
+      // });
+      // console.log("🚀 ~ AdminProductController ~ data:", data);
+      // res.send(data);
+      if (data.success) {
+        res.status(200).json(data);
+      } else {
+        this.error(data.message, 403);
+      }
     }
   );
 
@@ -95,7 +95,7 @@ class AdminProductController extends AdminAbstractController {
     async (req: Request, res: Response) => {
       const data = await this.productService.getAllProduct(req);
       if (data.success) {
-        res.status(201).json(data);
+        res.status(200).json(data);
       } else {
         res.status(400).json(data);
       }

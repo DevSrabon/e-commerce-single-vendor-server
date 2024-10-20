@@ -11,7 +11,7 @@ interface IptProduct {
   ptp_quantity: number;
 }
 export interface IptAttribute {
-  ptpa_av_id: number;
+  ptpa_v_id: number;
   ptp_p_id: number;
   ptpa_quantity: number;
 }
@@ -27,7 +27,7 @@ export interface IaddInventoryProduct {
   i_quantity_available: number;
 }
 export interface IptpAttributeVal {
-  ptpa_av_id: number;
+  ptpa_v_id: number;
   ptpa_quantity: number;
   ptpa_ptp_id: number;
 }
@@ -42,7 +42,7 @@ export interface IptProductInput {
 export interface IgetTransferProductInventoryAtbb {
   i_p_id: number;
   ia_id: number;
-  i_av_id: number;
+  i_v_id: number;
   ia_quantity_available: number;
 }
 
@@ -66,7 +66,7 @@ export interface IgetProductTpAttb {
   ptp_id: number;
   ptp_p_id: number;
   ptpa_id: number;
-  ptpa_av_id: number;
+  ptpa_v_id: number;
   ptpa_quantity: number;
 }
 

@@ -127,7 +127,7 @@ class AdminDamageProductService extends AdminAbstractServices {
       .leftJoin("p_damage AS pdm", "pdp.pdp_pd_id", "pdm.pd_id")
       .leftJoin("warehouse AS wh", "pdm.pd_w_id", "wh.w_id")
       .leftJoin("pdp_variants AS pda", "pdp.pdp_id", "pda.pdpa_pdp_id")
-      .leftJoin("attribute_value AS av", "pda.pdpa_v_id", "av.av_id")
+      .leftJoin("attribute_value AS av", "pda.pdpa_v_id", "av.v_id")
       .where("pdp.pdp_p_id", id);
 
     let data2: any = [];

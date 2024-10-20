@@ -129,7 +129,7 @@ class AdminProductValidator {
         checkFalsy: false,
       }),
 
-      body("ptp_variant.*.ptpa_av_id", "Provide ptpa_av_id").isInt().optional(),
+      body("ptp_variant.*.ptpa_v_id", "Provide ptpa_v_id").isInt().optional(),
       body("ptp_variant.*.ptpa_quantity", "Provide ptpa_quantity")
         .isInt()
         .optional(),

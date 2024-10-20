@@ -1,20 +1,20 @@
-import EcommAbstractServices from '../ecommAbstracts/ecomm.abstract.service';
-import EcommProductService from './ecomm.product.service';
-import { Request } from 'express';
+import { Request } from "express";
+import EcommAbstractServices from "../ecommAbstracts/ecomm.abstract.service";
+import EcommProductService from "./ecomm.product.service";
 
 interface IOrderProduct {
   id: number;
-  av_id?: number;
+  v_id?: number;
   quantity: number;
 }
 
 interface IOrderProductDetails {
-  eod_ep_id: number;
-  eod_eo_id?: number;
-  eod_ep_name: string;
-  eod_price: number;
-  eod_quantity: number;
-  eod_av_id: number;
+  ep_id: number;
+  id?: number;
+  ep_name: string;
+  price: number;
+  quantity: number;
+  v_id: number;
 }
 
 class EcommOrderService extends EcommAbstractServices {
@@ -34,7 +34,7 @@ class EcommOrderService extends EcommAbstractServices {
     if (pId.length !== orderProduct.length) {
       return {
         success: false,
-        message: 'Some of product are not available of this order',
+        message: "Some of product are not available of this order",
       };
     }
 
@@ -52,11 +52,11 @@ class EcommOrderService extends EcommAbstractServices {
         }
         total += parseInt(currProduct.ep_sale_price);
         return {
-          eod_ep_id: currProduct.ep_id,
-          eod_ep_name: currProduct.p_name,
-          eod_price: currProduct.ep_sale_price,
-          eod_quantity: item.quantity,
-          eod_av_id: item.av_id || null,
+          ep_id: currProduct.ep_id,
+          ep_name: currProduct.p_name,
+          price: currProduct.ep_sale_price,
+          quantity: item.quantity,
+          v_id: item.v_id || null,
         };
       }
     );
@@ -69,23 +69,23 @@ class EcommOrderService extends EcommAbstractServices {
     }
 
     return await this.db.transaction(async (trx) => {
-      const order = await trx('e_order').insert({
-        eo_ec_id: ec_id,
-        eo_ecsa_id: address_id,
-        eo_total: total,
-        eo_delivery_charge: delivery_charge,
-        eo_grand_total: total + parseInt(delivery_charge),
+      const order = await trx("e_order").insert({
+        ec_id: ec_id,
+        ecsa_id: address_id,
+        total: total,
+        delivery_charge: delivery_charge,
+        grand_total: total + parseInt(delivery_charge),
       });
 
       const currProductDetails = productDetails.map((item) => {
-        return { ...item, eod_eo_id: order[0] };
+        return { ...item, id: order[0] };
       });
 
-      await trx('e_order_details').insert(currProductDetails);
+      await trx("e_order_details").insert(currProductDetails);
 
       return {
         success: true,
-        message: 'Order placed!',
+        message: "Order placed!",
         data: {
           order_id: order[0],
         },
@@ -96,15 +96,15 @@ class EcommOrderService extends EcommAbstractServices {
   // get order of customer service
   public async ecommGetOrderService(req: Request) {
     const { ec_id } = req.customer;
-    const data = await this.db('e_order')
+    const data = await this.db("e_order")
       .select(
-        'eo_id as id',
-        'eo_status as order_status',
-        'eo_payment_status as payment_status',
-        'eo_grand_total as grand_total',
-        'eo_created_at as order_date'
+        "id as id",
+        "status as order_status",
+        "payment_status as payment_status",
+        "grand_total as grand_total",
+        "created_at as order_date"
       )
-      .where('eo_ec_id', ec_id);
+      .where("ec_id", ec_id);
 
     return {
       success: true,
@@ -117,61 +117,61 @@ class EcommOrderService extends EcommAbstractServices {
     const { ec_id } = req.customer;
     const { id } = req.params;
 
-    const order = await this.db('e_order')
+    const order = await this.db("e_order")
       .select(
-        'eo_id as id',
-        'eo_ecsa_id',
-        'eo_status as order_status',
-        'eo_payment_status as payment_status',
-        'eo_total as sub_total',
-        'eo_delivery_charge as delivery_charge',
-        'eo_discount as discount',
-        'eo_grand_total as grand_total',
-        'eo_created_at as order_create_date'
+        "id as id",
+        "ecsa_id",
+        "status as order_status",
+        "payment_status as payment_status",
+        "total as sub_total",
+        "delivery_charge as delivery_charge",
+        "discount as discount",
+        "grand_total as grand_total",
+        "created_at as order_create_date"
       )
-      .andWhere('eo_ec_id', ec_id)
-      .andWhere('eo_id', id);
+      .andWhere("ec_id", ec_id)
+      .andWhere("id", id);
 
     if (!order.length) {
       return {
         success: false,
-        message: 'No order found!',
+        message: "No order found!",
       };
     }
-    const { eo_ecsa_id, ...rest } = order[0];
+    const { ecsa_id, ...rest } = order[0];
 
-    const address = await this.db('ec_shipping_address as esa')
+    const address = await this.db("ec_shipping_address as esa")
       .select(
-        'esa.ecsa_id as id',
-        'esa.ecsa_label as label',
-        'esa.ecsa_name as name',
-        'esa.ecsa_phone as phone',
-        'esa.ecsa_address as address',
-        'av.area_id',
-        'av.area_name',
-        'av.sub_city_id',
-        'av.sub_city_name',
-        'av.city_id',
-        'av.city_name',
-        'av.province_id',
-        'av.province_name'
+        "esa.ecsa_id as id",
+        "esa.ecsa_label as label",
+        "esa.ecsa_name as name",
+        "esa.ecsa_phone as phone",
+        "esa.ecsa_address as address",
+        "av.area_id",
+        "av.area_name",
+        "av.sub_city_id",
+        "av.sub_city_name",
+        "av.city_id",
+        "av.city_name",
+        "av.province_id",
+        "av.province_name"
       )
-      .join('address_view as av', 'esa.ecsa_ar_id', 'av.area_id')
-      .where('ecsa_id', eo_ecsa_id);
+      .join("address_view as av", "esa.ecsa_ar_id", "av.area_id")
+      .where("ecsa_id", ecsa_id);
 
-    const products = await this.db('e_order_details as eod')
+    const products = await this.db("e_order_details as eod")
       .select(
-        'eod.eod_id as id',
-        'eod.eod_ep_name as name',
-        'eod.eod_price as price',
-        'eod.eod_quantity as quantity',
-        'av.av_id',
-        'av.av_value',
-        'a.a_name as attribute'
+        "eod.id as id",
+        "eod.ep_name as name",
+        "eod.price as price",
+        "eod.quantity as quantity",
+        "av.v_id",
+        "av.av_value",
+        "a.a_name as attribute"
       )
-      .leftJoin('attribute_value as av', 'eod.eod_av_id', 'av.av_id')
-      .leftJoin('attribute as a', 'av.av_a_id', 'a.a_id')
-      .where('eod_eo_id', id);
+      .leftJoin("attribute_value as av", "eod.v_id", "av.v_id")
+      .leftJoin("attribute as a", "av.av_a_id", "a.a_id")
+      .where("id", id);
 
     return {
       success: true,

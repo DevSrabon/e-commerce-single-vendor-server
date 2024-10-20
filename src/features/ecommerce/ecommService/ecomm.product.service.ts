@@ -8,9 +8,18 @@ class EcommProductService extends EcommAbstractServices {
 
   // Get ecommerce product service
   public async getEcommProductService(req: Request) {
-    const { category, limit, skip, tag, shortBy, serialBy, name } = req.query;
-    let orderBy: string = "p.p_name_en";
-    let serial: string = "asc";
+    const {
+      category,
+      limit,
+      skip,
+      tag,
+      shortBy,
+      serialBy,
+      name,
+      featured = 1,
+    } = req.query;
+    let orderBy: string = "p.p_created_at";
+    let serial: string = "desc";
     let total: number = 0;
     if (shortBy) {
       orderBy = `p.${shortBy}`;
@@ -20,19 +29,17 @@ class EcommProductService extends EcommAbstractServices {
     }
     const query = this.db("product_view as p")
       .select(
-        // "p.ep_id as id",
-        // "p.p_name_en as name",
-        // "p.p_organic as organic",
-        // "p.ep_price as price",
-        // "p.p_images as images",
-        // "p.p_attribute as attribute",
-        // "p.ep_sale_price as sale_price",
-        // "p.ep_details as details",
-        // "p.p_unit as unit",
-        // "p.p_slug as slug",
-        // "p.available_stock",
-        // "p.p_tags as tags"
-        "*"
+        "p.p_id as id",
+        "p.p_name_en as p_name_en",
+        "p.p_name_ar as p_name_ar",
+        "p.is_featured",
+        "p.p_images as images",
+        "p.variants",
+        "p.base_price",
+        "p.base_special_price",
+        "p.p_slug as slug",
+        "p.available_stock",
+        "p.p_tags as tags"
       )
       .andWhere((qb) => {
         qb.andWhere("p.p_status", 1);
@@ -47,11 +54,14 @@ class EcommProductService extends EcommAbstractServices {
             `%${name}%`
           );
         }
+        if (featured) {
+          qb.andWhere("p.is_featured", 1);
+        }
       })
       .orderBy(orderBy, serial);
 
     const totalQuery = this.db("product_view as p")
-      .count("p.ep_id as total")
+      .count("p.p_id as total")
       .andWhere((qb) => {
         if (tag) {
           qb.andWhere("p.p_tags", "like", `%${tag}%`);

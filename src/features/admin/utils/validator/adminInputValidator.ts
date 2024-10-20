@@ -238,7 +238,7 @@ class AdminInputValidator {
         checkFalsy: false,
       }),
       body(
-        "invoice_item.*.sii_p_av_id",
+        "invoice_item.*.sii_p_v_id",
         "Provide attribute value id"
       ).optional(),
     ];

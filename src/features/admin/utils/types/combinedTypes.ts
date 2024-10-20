@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import { Request } from "express";
 
 export interface customRequest<T> extends Request {
   body: T;
@@ -22,24 +22,24 @@ export interface IsupplierInvoiceReqBody {
 
 // ------------------- order type start ---------------//
 
-enum eot_status {
-  packaging = 'packaging',
-  arrived = 'arrived',
-  shipping = 'shipping',
-  shipped = 'shipped',
-  delivered = 'delivered',
+enum status {
+  packaging = "packaging",
+  arrived = "arrived",
+  shipping = "shipping",
+  shipped = "shipped",
+  delivered = "delivered",
 }
 
-enum eo_status {
-  rejected = 'rejected',
-  delivered = 'delivered',
+enum status {
+  rejected = "rejected",
+  delivered = "delivered",
 }
 export interface IorderUpdateBody {
-  eot_status: eot_status;
-  eo_remarks?: string;
-  eot_details?: string;
-  eo_status: eo_status;
-  eo_payment_status?: number;
+  status: status;
+  remarks?: string;
+  details?: string;
+  status: status;
+  payment_status?: number;
 }
 
 // ============== supplier invoice start ============//
@@ -60,7 +60,7 @@ export interface IinvoiceItem {
   sii_p_id: number;
   sii_unit_price: number;
   sii_quantity: number;
-  sii_p_av_id?: number;
+  sii_p_v_id?: number;
 }
 export interface IModifyInvoiceItem {
   sii_si_id: number;
@@ -68,7 +68,7 @@ export interface IModifyInvoiceItem {
   sii_name: string;
   sii_unit_price: number;
   sii_quantity: number;
-  sii_p_av_id: number;
+  sii_p_v_id: number;
 }
 
 export interface IgetSaleProduct {
@@ -80,7 +80,7 @@ export interface IgetSaleProduct {
 export interface IgetSaleProductInventoryAtbb {
   i_p_id: number;
   ia_id: number;
-  i_av_id: number;
+  i_v_id: number;
   ia_quantity_available: number;
 }
 
@@ -88,6 +88,6 @@ export interface IgetSaleProductInventoryAtbb {
   i_id: number;
   i_p_id: number;
   ia_id: number;
-  i_av_id: number;
+  i_v_id: number;
   ia_quantity_available: number;
 }

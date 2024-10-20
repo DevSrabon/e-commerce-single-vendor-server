@@ -27,16 +27,16 @@ class AdminDashboardService extends AdminAbstractServices {
     // Fetch total sales for the last 6 months
     const monthlySales = await this.db.raw(
       `SELECT
-        DATE_FORMAT(eo_created_at, '%Y-%m') as month,
-        SUM(eo_grand_total) as total_sales
+        DATE_FORMAT(created_at, '%Y-%m') as month,
+        SUM(grand_total) as total_sales
      FROM
         e_order
      WHERE
-        eo_created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
      GROUP BY
-        DATE_FORMAT(eo_created_at, '%Y-%m')
+        DATE_FORMAT(created_at, '%Y-%m')
      ORDER BY
-        DATE_FORMAT(eo_created_at, '%Y-%m')`
+        DATE_FORMAT(created_at, '%Y-%m')`
     );
 
     const productInformation = await this.db("product_view")
@@ -52,12 +52,12 @@ class AdminDashboardService extends AdminAbstractServices {
         "product_view.p_name_ar",
         "product_view.available_stock"
       )
-      .sum("e_order_details.eod_quantity as total_sold")
+      .sum("e_order_details.quantity as total_sold")
       .join(
         "e_order_details",
         "product_view.p_id",
         "=",
-        "e_order_details.eod_ep_id"
+        "e_order_details.ep_id"
       )
       .groupBy(
         "product_view.p_id",

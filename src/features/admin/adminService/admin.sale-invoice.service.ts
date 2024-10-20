@@ -27,7 +27,7 @@ class AdminSaleInvoiceService extends AdminAbstractServices {
 
       // validation
       for (const item of invoice_item) {
-        if (item.sii_p_av_id) {
+        if (item.sii_p_v_id) {
           const res = await trx("inventory AS i")
             .select(
               "i.i_id",
@@ -36,14 +36,14 @@ class AdminSaleInvoiceService extends AdminAbstractServices {
               "i.i_quantity_sold",
               "i.i_quantity_available",
               "ia.ia_id",
-              "ia.i_av_id",
+              "ia.i_v_id",
               "ia.ia_quantity_available"
             )
             .join("product AS p", "i.i_p_id", "p.p_id")
             .join("inventory_attribute AS ia", "i.i_id", "ia.ia_i_id")
             .andWhere("i.i_w_id", rest.si_w_id)
             .andWhere("i.i_p_id", item.sii_p_id)
-            .andWhere("ia.i_av_id", item.sii_p_av_id)
+            .andWhere("ia.i_v_id", item.sii_p_v_id)
             .andWhere("ia.ia_quantity_available", ">=", item.sii_quantity);
 
           if (!res.length) {
@@ -75,7 +75,7 @@ class AdminSaleInvoiceService extends AdminAbstractServices {
           products.push({
             sii_p_id: item.sii_p_id,
             sii_name: res[0].p_name,
-            sii_p_av_id: item.sii_p_av_id,
+            sii_p_v_id: item.sii_p_v_id,
             sii_unit_price: item.sii_unit_price,
             sii_quantity: item.sii_quantity,
             sii_total_price: item.sii_quantity * item.sii_unit_price,
@@ -118,7 +118,7 @@ class AdminSaleInvoiceService extends AdminAbstractServices {
           products.push({
             sii_p_id: item.sii_p_id,
             sii_name: res[0].p_name,
-            sii_p_av_id: item.sii_p_av_id,
+            sii_p_v_id: item.sii_p_v_id,
             sii_unit_price: item.sii_unit_price,
             sii_quantity: item.sii_quantity,
             sii_total_price: item.sii_quantity * item.sii_unit_price,
@@ -213,7 +213,7 @@ class AdminSaleInvoiceService extends AdminAbstractServices {
         //         'i.i_id',
         //         'i.i_p_id',
         //         'ia.ia_id',
-        //         'ia.i_av_id',
+        //         'ia.i_v_id',
         //         'ia.ia_quantity_available'
         //       )
         //       .join('inventory_attribute AS ia', 'i.i_id', 'ia.ia_i_id')
@@ -231,7 +231,7 @@ class AdminSaleInvoiceService extends AdminAbstractServices {
         //       const removeItem = invoice_item.find(
         //         (item) =>
         //           item.sii_p_id === saleItem.i_p_id &&
-        //           item.sii_p_av_id === saleItem.i_av_id
+        //           item.sii_p_v_id === saleItem.i_v_id
         //       );
 
         //       if (removeItem) {
@@ -239,7 +239,7 @@ class AdminSaleInvoiceService extends AdminAbstractServices {
         //           i_id: saleItem.i_id,
         //           i_p_id: saleItem.i_p_id,
         //           ia_id: saleItem.ia_id,
-        //           i_av_id: saleItem.i_av_id,
+        //           i_v_id: saleItem.i_v_id,
         //           ia_quantity_available:
         //             saleItem.ia_quantity_available - removeItem.sii_quantity,
         //         });

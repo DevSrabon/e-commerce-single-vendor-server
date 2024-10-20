@@ -14,7 +14,7 @@ class EcommReviewService extends EcommAbstractServices {
 
     const check = await this.db("product_review as epr")
       .select("*")
-      .andWhere("epr.eo_id", order_id)
+      .andWhere("epr.id", order_id)
       .andWhere("epr.ec_id", ec_id)
       .andWhere("epr.ep_id", product_id);
 
@@ -30,7 +30,7 @@ class EcommReviewService extends EcommAbstractServices {
       ep_id: product_id,
       comment: comment,
       rating: rating,
-      eo_id: order_id,
+      id: order_id,
     });
 
     if (files.length) {
@@ -119,16 +119,16 @@ class EcommReviewService extends EcommAbstractServices {
     const data = await this.db("e_order_details as eod")
       .select(
         "ep.ep_id as id",
-        "eo.eo_id as order_id",
+        "eo.id as order_id",
         "ep.p_name as name",
         "ep.p_slug as slug",
         "ep.p_images as images"
       )
-      .join("e_order as eo", "eod.eod_eo_id", "eo.eo_id")
-      .join("product_view as ep", "eod.eod_ep_id", "ep.ep_id")
-      .leftJoin("product_review as epr", "eod.eod_ep_id", "epr.ep_id")
-      .andWhere("eo.eo_status", "delivered")
-      .andWhere("eo.eo_ec_id", ec_id)
+      .join("e_order as eo", "eod.id", "eo.id")
+      .join("product_view as ep", "eod.ep_id", "ep.ep_id")
+      .leftJoin("product_review as epr", "eod.ep_id", "epr.ep_id")
+      .andWhere("eo.status", "delivered")
+      .andWhere("eo.ec_id", ec_id)
       .andWhere("epr.ec_id", null);
 
     return {

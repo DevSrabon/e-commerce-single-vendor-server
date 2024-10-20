@@ -1,6 +1,6 @@
 export interface attributeValue {
   a_name: string;
-  av_id: number;
+  v_id: number;
   av_value: number;
 }
 
@@ -12,7 +12,7 @@ export interface data2 {
   // attribute: attributeValue[];
 }
 export interface IpurchaseProductAttributeValues {
-  av_id: number;
+  v_id: number;
   total_item: number;
 }
 export interface IpurchaseProduct {
@@ -38,7 +38,7 @@ export interface IpurchaseProductData {
   pp_quantity: number;
   pp_unit_price: number;
   a_name: string;
-  av_id: number;
+  v_id: number;
   av_value: number;
 }
 

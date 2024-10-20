@@ -210,81 +210,8 @@ class CommonService extends CommonAbstractServices {
     };
   }
 
-  // public async makeStripPayment() {
-  //   // }[] //   image: string; //   quantity: number; //   name: string; //   currency: string; //   amount: number; // payload: {
-  //   const stripe = new Stripe(config.STRIPE_SECRET_KEY);
-
-  //   // Create a coupon for a 10% discount
-  //   // const coupon = await stripe.coupons.create({
-  //   //   percent_off: 10, // 10% discount
-  //   //   duration: "once", // Applies only once
-  //   // });
-
-  //   const coupon = await stripe.coupons.create({
-  //     amount_off: 500, // 500 cents = $5 off
-  //     currency: "aed",
-  //     duration: "once", // Applies only once
-  //   });
-
-  //   // Create the checkout session and apply the coupon
-  //   const session = await stripe.checkout.sessions.create({
-  //     payment_method_types: ["card"], // Enable card payments, including Google Pay
-  //     line_items: [
-  //       {
-  //         price_data: {
-  //           currency: "usd",
-  //           product_data: {
-  //             name: "DSLR Camera",
-  //             images: [
-  //               "https://dfstudio-d420.kxcdn.com/wordpress/wp-content/uploads/2019/06/digital_camera_photo-1080x675.jpg",
-  //             ],
-  //             description: "DSLR Camera with 4k resolution",
-  //             metadata: {
-  //               orderId: "12345",
-  //             },
-  //           },
-  //           unit_amount: 2000 * 100, // Product price in USD cents
-  //         },
-  //         quantity: 1,
-  //       },
-  //       {
-  //         price_data: {
-  //           currency: "usd",
-  //           product_data: {
-  //             name: "Delivery Charge",
-  //           },
-  //           unit_amount: 500 * 100, // Delivery charge in USD cents
-  //         },
-  //         quantity: 1,
-  //       },
-  //       {
-  //         price_data: {
-  //           currency: "usd",
-  //           product_data: {
-  //             name: "Taxes",
-  //           },
-  //           unit_amount: 100 * 100, // Tax amount in USD cents
-  //         },
-  //         quantity: 1,
-  //       },
-  //     ],
-  //     mode: "payment",
-  //     discounts: [
-  //       {
-  //         coupon: coupon.id, // Apply the coupon created programmatically
-  //       },
-  //     ],
-  //     success_url: "http://localhost:3000/success",
-  //     cancel_url: "http://localhost:3000/cancel",
-  //   });
-
-  //   return {
-  //     id: session.id,
-  //     redirect_url: session.url,
-  //   };
-  // }
-
-  public async makeStripPayment(payload: {
+  // make stripe payment
+  public async makeStripePayment(payload: {
     items: {
       name: string;
       amount: number;

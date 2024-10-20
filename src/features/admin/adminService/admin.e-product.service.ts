@@ -8,11 +8,11 @@ class AdminEcommerceProductService extends AdminAbstractServices {
 
   // add product into ecommerce
   public async addProductIntoEcommerceService(req: Request) {
-    const { ep_p_id, ep_price, ep_sale_price, ep_details } = req.body;
+    const { p_p_id, p_price, p_sale_price, p_details } = req.body;
 
     const checkProduct = await this.db("product_view")
       .select("p_name", "available_stock")
-      .where({ p_id: ep_p_id });
+      .where({ p_id: p_p_id });
 
     if (!checkProduct.length) {
       return {
@@ -29,8 +29,8 @@ class AdminEcommerceProductService extends AdminAbstractServices {
     }
 
     const checkEProduct = await this.db("e_product")
-      .select("ep_price")
-      .where({ ep_p_id });
+      .select("p_price")
+      .where({ p_p_id });
 
     if (checkEProduct.length) {
       return {
@@ -40,10 +40,10 @@ class AdminEcommerceProductService extends AdminAbstractServices {
     }
 
     const res = await this.db("e_product").insert({
-      ep_p_id,
-      ep_price,
-      ep_sale_price,
-      ep_details,
+      p_p_id,
+      p_price,
+      p_sale_price,
+      p_details,
     });
 
     if (res.length) {
@@ -69,17 +69,18 @@ class AdminEcommerceProductService extends AdminAbstractServices {
 
     const data = await this.db("product_view")
       .select(
-        "ep_id",
-        "ep_status",
         "p_id",
-        "p_name",
-        "ep_price",
+        "p_status",
+        "p_id",
+        "p_name_en",
+        "p_name_ar",
+        // "p_price",
         "available_stock",
         "p_images"
       )
       .where(function () {
         if (status) {
-          this.where("ep_status", status);
+          this.where("p_status", status);
         }
         if (p_name) {
           this.andWhere("p_name", "Like", `%${p_name}%`);
@@ -105,11 +106,11 @@ class AdminEcommerceProductService extends AdminAbstractServices {
     const { id } = req.params;
     const data = await this.db("product_view AS epv")
       .select(
-        "epv.ep_id",
-        "epv.ep_price",
-        "epv.ep_sale_price",
-        "epv.ep_status",
-        "epv.ep_details",
+        "epv.p_id",
+        "epv.p_price",
+        "epv.p_sale_price",
+        "epv.p_status",
+        "epv.p_details",
         "epv.p_id",
         "epv.p_unit",
         "epv.p_name",
@@ -122,7 +123,7 @@ class AdminEcommerceProductService extends AdminAbstractServices {
         "epv.p_created_at"
       )
 
-      .where("epv.ep_id", id);
+      .where("epv.p_id", id);
 
     let pAttb = data[0]?.p_attribute;
     let pAttb2: any = [];
@@ -133,7 +134,7 @@ class AdminEcommerceProductService extends AdminAbstractServices {
         if (pAttb2[j].a_name === pAttb[i].a_name) {
           found = true;
           pAttb2[j].ab_values.push({
-            av_id: pAttb[i].av_id,
+            v_id: pAttb[i].v_id,
             av_value: pAttb[i].av_value,
           });
         }
@@ -143,7 +144,7 @@ class AdminEcommerceProductService extends AdminAbstractServices {
           a_name: pAttb[i].a_name,
           ab_values: [
             {
-              av_id: pAttb[i].av_id,
+              v_id: pAttb[i].v_id,
               av_value: pAttb[i].av_value,
             },
           ],
@@ -154,7 +155,7 @@ class AdminEcommerceProductService extends AdminAbstractServices {
     const inventoryAttbdata = await this.db("product_view AS epv")
       .select("iv.inventory_attribute")
       .join("inventory_view AS iv", "epv.p_id", "iv.i_p_id")
-      .where("epv.ep_id", id);
+      .where("epv.p_id", id);
 
     const { categories, p_images, p_attribute, ...rest } = data[0];
 
@@ -182,8 +183,8 @@ class AdminEcommerceProductService extends AdminAbstractServices {
     const { id } = req.params;
 
     const checkEProduct = await this.db("e_product")
-      .select("ep_id")
-      .where({ ep_id: id });
+      .select("p_id")
+      .where({ p_id: id });
 
     if (!checkEProduct.length) {
       return {
@@ -194,7 +195,7 @@ class AdminEcommerceProductService extends AdminAbstractServices {
 
     const pdRes = await this.db("e_product")
       .update(req.body)
-      .where({ ep_id: id });
+      .where({ p_id: id });
 
     if (pdRes) {
       return {
