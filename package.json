@@ -2,7 +2,7 @@
   "name": "ecommerce-server",
   "version": "1.0.0",
   "description": "server for e-commerce app",
-  "main": "index.js",
+  "main": "src/server.js",
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/index.js",
