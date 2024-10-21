@@ -139,8 +139,14 @@ class EcommProductService extends EcommAbstractServices {
   // get product for order by id array
   public async getProductForOrder(ids: number[]) {
     const data = await this.db("product_view")
-      .select("ep_id", "ep_sale_price", "available_stock", "p_name_en")
-      .whereIn("ep_id", ids)
+      .select(
+        "p_id",
+        "base_special_price",
+        "available_stock",
+        "p_name_en",
+        "p_name_ar"
+      )
+      .whereIn("p_id", ids)
       .andWhere("p_status", 1)
       .andWhereNot("available_stock", null);
     return data;

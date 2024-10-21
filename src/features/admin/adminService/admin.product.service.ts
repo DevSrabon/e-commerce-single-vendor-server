@@ -172,9 +172,7 @@ class AdminProductService extends AdminAbstractServices {
         // Insert the colors and get the first inserted ID
         const [pColor] = await trx("p_color").insert(colorsArray);
 
-        // Create an array of the inserted color IDs based on the first inserted ID
-        const productColorId = colorsArray.map((_, index) => pColor + index);
-
+        // Insert color images
         const insertColorImg = await Promise.all(
           parsedColor.map(async (colorId: number, colorIndex: number) => {
             const checkColor = await trx("color")
@@ -186,21 +184,25 @@ class AdminProductService extends AdminAbstractServices {
             }
 
             const colorImages: any[] = [];
-
-            files.forEach((file) => {
-              if (file.fieldname === `colorsPhotos_${colorIndex + 1}`) {
-                colorImages.push({
-                  p_id: productId,
-                  p_color_id: productColorId[colorIndex],
-                  image: file.filename,
-                });
-              }
+            colorsArray.forEach((_, index) => {
+              files.forEach((file) => {
+                if (
+                  file.fieldname ===
+                  `colorsPhotos_${index + 1}_${colorIndex + 1}`
+                ) {
+                  colorImages.push({
+                    p_id: productId,
+                    p_color_id: pColor + index,
+                    image: file.filename,
+                  });
+                }
+              });
             });
 
             return colorImages;
           })
         );
-
+        console.log({ insertColorImg });
         const flattenedInsertColorImg = insertColorImg.flat();
 
         if (!flattenedInsertColorImg.length) {
