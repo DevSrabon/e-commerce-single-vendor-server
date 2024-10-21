@@ -28,17 +28,14 @@ enum status {
   shipping = "shipping",
   shipped = "shipped",
   delivered = "delivered",
+  rejected = "rejected",
+  cancelled = "cancelled",
 }
 
-enum status {
-  rejected = "rejected",
-  delivered = "delivered",
-}
 export interface IorderUpdateBody {
   status: status;
   remarks?: string;
   details?: string;
-  status: status;
   payment_status?: number;
 }
 
