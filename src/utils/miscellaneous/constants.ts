@@ -9,6 +9,7 @@ export const origin: string[] = [
   "http://192.168.0.240:3000",
   "https://saba-al-wadu-ecommerce-admin.vercel.app",
   "https://admin-saba-al-wadu.netlify.app",
+  "https://www.admin-saba-al-wadu.netlify.app/",
 ];
 
 export const allowedImageTypes: string[] = [

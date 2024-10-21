@@ -11,7 +11,7 @@ interface IOrderProduct {
 interface IOrderProductDetails {
   ep_id: number;
   id?: number;
-  ep_name: string;
+  ep_name_en: string;
   price: number;
   quantity: number;
   v_id: number;
@@ -26,11 +26,23 @@ class EcommOrderService extends EcommAbstractServices {
   // customer place order service
   public async ecommPlaceOrderService(req: Request) {
     const { ec_id } = req.customer;
-    const { address_id, products, delivery_charge } = req.body;
+    const { address_id, products, color_id, size_id, delivery_charge } =
+      req.body;
     const pId: number[] = products.map((item: IOrderProduct) => item.id);
+    console.log("🚀 ~ EcommOrderService ~ ecommPlaceOrderService ~ pId:", pId);
+    const checkAddress = await this.db("ec_shipping_address")
+      .select("ecsa_id")
+      .where("ecsa_ec_id", ec_id)
+      .andWhere("ecsa_id", address_id);
 
+    if (!checkAddress.length) {
+      return {
+        success: false,
+        message: "Address not found",
+      };
+    }
     const orderProduct = await this.ecommProductService.getProductForOrder(pId);
-    console.log({ orderProduct });
+
     if (pId.length !== orderProduct.length) {
       return {
         success: false,
@@ -44,19 +56,29 @@ class EcommOrderService extends EcommAbstractServices {
     const productDetails: IOrderProductDetails[] = products.map(
       (item: IOrderProduct) => {
         const currProduct = orderProduct.find(
-          (item2) => item2.ep_id === parseInt(item.id.toString())
+          (item2) => item2.p_id === parseInt(item.id.toString())
         );
-
+        console.log({
+          currProduct,
+        });
         if (currProduct?.available_stock < item.quantity) {
-          stockOut = `${currProduct.p_name} is out of stock!`;
+          stockOut = `${currProduct.p_name_en} is out of stock!`;
         }
-        total += parseInt(currProduct.ep_sale_price);
+        total += parseInt(currProduct.base_special_price);
+        console.log(
+          "🚀 ~ EcommOrderService ~ ecommPlaceOrderService ~ currProduct:",
+          currProduct,
+          total
+        );
         return {
           ep_id: currProduct.ep_id,
-          ep_name: currProduct.p_name,
-          price: currProduct.ep_sale_price,
+          ep_name_en: currProduct.p_name_en,
+          ep_name_ar: currProduct.p_name_ar,
+          price: currProduct.base_special_price,
           quantity: item.quantity,
           v_id: item.v_id || null,
+          color_id,
+          size_id,
         };
       }
     );

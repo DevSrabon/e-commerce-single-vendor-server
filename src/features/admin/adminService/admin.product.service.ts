@@ -596,7 +596,9 @@ class AdminProductService extends AdminAbstractServices {
               color_id: colorId,
             });
             const colorPhotos = files.filter(
-              (file) => file.fieldname === `new_color_image_${colorIndex + 1}`
+              (file, fileIndex) =>
+                file.fieldname ===
+                `new_color_image_${colorIndex + 1}_${fileIndex + 1}`
             );
 
             if (!colorPhotos.length) {

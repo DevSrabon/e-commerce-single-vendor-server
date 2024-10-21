@@ -19,6 +19,11 @@ class EcommOrderValidator {
         .exists()
         .isInt()
         .optional(),
+      body("products.*.color_id", "Provide valid product color id")
+        .exists()
+        .isInt()
+        .optional(),
+      body("products.*.size_id", "Provide valid product size id"),
     ];
   }
 }
