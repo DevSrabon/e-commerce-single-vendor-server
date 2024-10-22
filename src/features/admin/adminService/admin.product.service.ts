@@ -1,4 +1,5 @@
 import { Request } from "express";
+import CustomError from "../../../utils/lib/customError";
 import Lib from "../../../utils/lib/lib";
 import AdminAbstractServices from "../adminAbstracts/admin.abstract.service";
 interface IProductVariants {
@@ -172,6 +173,13 @@ class AdminProductService extends AdminAbstractServices {
         // Insert the colors and get the first inserted ID
         const [pColor] = await trx("p_color").insert(colorsArray);
 
+        if (!pColor) {
+          return {
+            success: false,
+            message: "Color not inserted",
+          };
+        }
+
         // Insert color images
         const insertColorImg = await Promise.all(
           parsedColor.map(async (colorId: number, colorIndex: number) => {
@@ -184,32 +192,38 @@ class AdminProductService extends AdminAbstractServices {
             }
 
             const colorImages: any[] = [];
-            colorsArray.forEach((_, index) => {
-              files.forEach((file) => {
-                if (
-                  file.fieldname ===
-                  `colorsPhotos_${index + 1}_${colorIndex + 1}`
-                ) {
-                  colorImages.push({
-                    p_id: productId,
-                    p_color_id: pColor + index,
-                    image: file.filename,
-                  });
-                }
-              });
+            files.forEach((file, i) => {
+              console.log(
+                `fieldname: ${file.fieldname}, colorFiled: ${`colorsPhotos_${
+                  colorIndex + 1
+                }`}`
+              );
+              if (file.fieldname === `colorsPhotos_${colorIndex + 1}`) {
+                colorImages.push({
+                  p_id: productId,
+                  p_color_id: pColor + colorIndex,
+                  image: file.filename,
+                });
+              }
             });
 
             return colorImages;
           })
         );
-        console.log({ insertColorImg });
+
         const flattenedInsertColorImg = insertColorImg.flat();
 
         if (!flattenedInsertColorImg.length) {
-          return {
-            success: false,
-            message: "Color image not inserted",
-          };
+          throw new CustomError(
+            "Color image not inserted",
+            400,
+            "Internal server Error"
+          );
+          // trx.rollback();
+          // return {
+          //   success: false,
+          //   message: "Color image not inserted",
+          // };
         }
 
         await trx("color_image").insert(flattenedInsertColorImg);
@@ -596,9 +610,7 @@ class AdminProductService extends AdminAbstractServices {
               color_id: colorId,
             });
             const colorPhotos = files.filter(
-              (file, fileIndex) =>
-                file.fieldname ===
-                `new_color_image_${colorIndex + 1}_${fileIndex + 1}`
+              (file) => file.fieldname === `new_color_image_${colorIndex + 1}`
             );
 
             if (!colorPhotos.length) {
@@ -1024,6 +1036,38 @@ class AdminProductService extends AdminAbstractServices {
         message: "Cannot update category now",
       };
     }
+  }
+
+  // Get All tags
+  public async getAllTags(req: Request) {
+    const { limit, skip, p_tags } = req.query;
+    console.log("🚀 ~ AdminProductService ~ getAllTags ~ limit:", limit);
+    const data = await this.db("product")
+      .select("p_tags")
+      .distinct("p_tags")
+      .where(function () {
+        if (p_tags) {
+          this.where("p_tags", "like", `%${p_tags}%`);
+        }
+      })
+      .orderBy("p_tags", "asc")
+      .limit(limit ? parseInt(limit as string) : 100)
+      .offset(parseInt((skip as string) || "0"));
+
+    const totalResult = await this.db("product")
+      .countDistinct("p_tags")
+      .where(function () {
+        if (p_tags) {
+          this.where("p_tags", "like", `%${p_tags}%`);
+        }
+      });
+    const total = totalResult[0]?.["count(distinct `p_tags`)"] || 0;
+    return {
+      success: true,
+      message: "Tags fetched successfully",
+      total: total,
+      data: data,
+    };
   }
 }
 

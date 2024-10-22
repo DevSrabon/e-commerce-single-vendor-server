@@ -55,6 +55,9 @@ class AdminProductRouter extends AdminAbstractRouter {
 
     // ===============  Category End  ============== //
 
+    // Get All tags
+    this.router.route("/tags").get(this.productController.getTagsController);
+
     // get single product and update a single product
     this.router
       .route("/:id")

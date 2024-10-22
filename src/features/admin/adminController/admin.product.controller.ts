@@ -164,6 +164,19 @@ class AdminProductController extends AdminAbstractController {
       }
     }
   );
+
+  // Get All tags
+  public getTagsController = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.productService.getAllTags(req);
+
+      if (data.success) {
+        res.status(200).json(data);
+      } else {
+        this.error(data.message, 400);
+      }
+    }
+  );
 }
 
 export default AdminProductController;

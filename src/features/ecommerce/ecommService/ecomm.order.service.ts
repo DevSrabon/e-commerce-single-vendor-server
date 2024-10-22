@@ -29,7 +29,6 @@ class EcommOrderService extends EcommAbstractServices {
     const { address_id, products, color_id, size_id, delivery_charge } =
       req.body;
     const pId: number[] = products.map((item: IOrderProduct) => item.id);
-    console.log("🚀 ~ EcommOrderService ~ ecommPlaceOrderService ~ pId:", pId);
     const checkAddress = await this.db("ec_shipping_address")
       .select("ecsa_id")
       .where("ecsa_ec_id", ec_id)
@@ -58,20 +57,14 @@ class EcommOrderService extends EcommAbstractServices {
         const currProduct = orderProduct.find(
           (item2) => item2.p_id === parseInt(item.id.toString())
         );
-        console.log({
-          currProduct,
-        });
+
         if (currProduct?.available_stock < item.quantity) {
           stockOut = `${currProduct.p_name_en} is out of stock!`;
         }
         total += parseInt(currProduct.base_special_price);
-        console.log(
-          "🚀 ~ EcommOrderService ~ ecommPlaceOrderService ~ currProduct:",
-          currProduct,
-          total
-        );
+
         return {
-          ep_id: currProduct.ep_id,
+          ep_id: currProduct.p_id,
           ep_name_en: currProduct.p_name_en,
           ep_name_ar: currProduct.p_name_ar,
           price: currProduct.base_special_price,
@@ -100,7 +93,7 @@ class EcommOrderService extends EcommAbstractServices {
       });
 
       const currProductDetails = productDetails.map((item) => {
-        return { ...item, id: order[0] };
+        return { ...item, eo_id: order[0] };
       });
 
       await trx("e_order_details").insert(currProductDetails);

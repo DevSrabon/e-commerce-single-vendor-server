@@ -11,7 +11,7 @@ class AdminProductValidator {
       body("p_name_ar", "Provide product name in arabic")
         .exists({ checkFalsy: false })
         .isString(),
-      body("quantity", "Provide product quantity").isInt().exists(),
+      body("quantity", "Provide product quantity").isInt().exists().notEmpty(),
       body("stock_alert", "Provide stock alert")
         .isInt()
         .exists({ checkFalsy: false }),
