@@ -1,11 +1,8 @@
 import bcrypt from "bcryptjs";
-import { createCanvas } from "canvas";
-import JsBarcode from "jsbarcode";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
-import QRCode from "qrcode";
 import config from "../config/config";
-import { allStrings, CLIENT_URL } from "../miscellaneous/constants";
+import { allStrings } from "../miscellaneous/constants";
 import ManageFile from "./manageFile";
 
 class Lib {
@@ -46,6 +43,18 @@ class Lib {
       console.log(err);
       return false;
     }
+  }
+  public generateBarCode(productId: number) {
+    return `${productId}${Lib.otpGenNumber(6)}`;
+  }
+
+  public generateSKU(productId: number, productName: string) {
+    const namePart = productName
+      .substring(0, 3)
+      .toUpperCase()
+      .replace(/-/g, "");
+
+    return `${namePart}${productId}`;
   }
 
   // generate random Number
@@ -121,80 +130,80 @@ class Lib {
     return str;
   }
 
-  // Generate SKU, QR Code, and Barcode
-  public async generateProductAssets(
-    productName: string,
-    categoryCode: number,
-    productId: number
-  ) {
-    // 1. Generate SKU
-    const namePart = productName
-      .substring(0, 3)
-      .toUpperCase()
-      .replace(/-/g, "");
-    const categoryPart = categoryCode.toString().substring(0, 3).toUpperCase();
-    // const randomPart = uuidv4().substring(0, 4).toUpperCase();
-    const sku = `${namePart}-${categoryPart}-${productId}`;
+  // // Generate SKU, QR Code, and Barcode
+  // public async generateProductAssets(
+  //   productName: string,
+  //   categoryCode: number,
+  //   productId: number
+  // ) {
+  //   // 1. Generate SKU
+  //   const namePart = productName
+  //     .substring(0, 3)
+  //     .toUpperCase()
+  //     .replace(/-/g, "");
+  //   const categoryPart = categoryCode.toString().substring(0, 3).toUpperCase();
+  //   // const randomPart = uuidv4().substring(0, 4).toUpperCase();
+  //   const sku = `${namePart}-${categoryPart}-${productId}`;
 
-    // 2. Generate QR Code
-    const qrCodeFileName = `product_files/qrcode/qrCode-${Date.now()}.png`;
-    const qrCodeData = await this.generateQRCode(
-      `${CLIENT_URL}/products/${productName}`,
-      qrCodeFileName
-    );
+  //   // 2. Generate QR Code
+  //   const qrCodeFileName = `product_files/qrcode/qrCode-${Date.now()}.png`;
+  //   const qrCodeData = await this.generateQRCode(
+  //     `${CLIENT_URL}/products/${productName}`,
+  //     qrCodeFileName
+  //   );
 
-    // 3. Generate Barcode (CODE128)
-    const barcodeFileName = `product_files/barcode/barcode-${Date.now()}.png`;
-    const barcodeData = await this.generateBarcode(sku, barcodeFileName);
+  //   // 3. Generate Barcode (CODE128)
+  //   const barcodeFileName = `product_files/barcode/barcode-${Date.now()}.png`;
+  //   const barcodeData = await this.generateBarcode(sku, barcodeFileName);
 
-    // Return SKU, QR Code path, and Barcode path
-    return {
-      sku,
-      qrCodeFilePath: qrCodeData,
-      barcodeFilePath: barcodeData,
-    };
-  }
+  //   // Return SKU, QR Code path, and Barcode path
+  //   return {
+  //     sku,
+  //     qrCodeFilePath: qrCodeData,
+  //     barcodeFilePath: barcodeData,
+  //   };
+  // }
 
-  // Helper method to generate QR Code and upload to S3
-  private async generateQRCode(data: string, filePath: string) {
-    try {
-      const url = await QRCode.toDataURL(data);
-      const base64Data = url.replace(/^data:image\/png;base64,/, "");
-      const buffer = Buffer.from(base64Data, "base64");
+  // // Helper method to generate QR Code and upload to S3
+  // private async generateQRCode(data: string, filePath: string) {
+  //   try {
+  //     const url = await QRCode.toDataURL(data);
+  //     const base64Data = url.replace(/^data:image\/png;base64,/, "");
+  //     const buffer = Buffer.from(base64Data, "base64");
 
-      // Upload to S3
-      await this.manageFile.awsUploadBuffer(buffer, filePath);
-      return filePath;
-    } catch (err) {
-      console.error("QR Code Error", err);
-      throw new Error("Failed to generate QR Code");
-    }
-  }
+  //     // Upload to S3
+  //     await this.manageFile.awsUploadBuffer(buffer, filePath);
+  //     return filePath;
+  //   } catch (err) {
+  //     console.error("QR Code Error", err);
+  //     throw new Error("Failed to generate QR Code");
+  //   }
+  // }
 
-  // Helper method to generate Barcode and upload to S3
-  private async generateBarcode(data: string, filePath: string) {
-    try {
-      const canvas = createCanvas(400, 100); // Adjust canvas size as needed
-      JsBarcode(canvas, data, {
-        format: "CODE128",
-        lineColor: "#000",
-        width: 2,
-        height: 100,
-        displayValue: true,
-      });
+  // // Helper method to generate Barcode and upload to S3
+  // private async generateBarcode(data: string, filePath: string) {
+  //   try {
+  //     const canvas = createCanvas(400, 100); // Adjust canvas size as needed
+  //     JsBarcode(canvas, data, {
+  //       format: "CODE128",
+  //       lineColor: "#000",
+  //       width: 2,
+  //       height: 100,
+  //       displayValue: true,
+  //     });
 
-      const url = canvas.toDataURL("image/png");
-      const base64Data = url.replace(/^data:image\/png;base64,/, "");
-      const buffer = Buffer.from(base64Data, "base64");
+  //     const url = canvas.toDataURL("image/png");
+  //     const base64Data = url.replace(/^data:image\/png;base64,/, "");
+  //     const buffer = Buffer.from(base64Data, "base64");
 
-      // Upload to S3
-      await this.manageFile.awsUploadBuffer(buffer, filePath);
-      return filePath;
-    } catch (err) {
-      console.error("Barcode Error", err);
-      throw new Error("Failed to generate Barcode");
-    }
-  }
+  //     // Upload to S3
+  //     await this.manageFile.awsUploadBuffer(buffer, filePath);
+  //     return filePath;
+  //   } catch (err) {
+  //     console.error("Barcode Error", err);
+  //     throw new Error("Failed to generate Barcode");
+  //   }
+  // }
 
   // getnerate email otp html
   public static generateHtmlOtpPage(otp: string, otpFor: string) {

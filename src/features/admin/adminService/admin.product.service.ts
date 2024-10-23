@@ -76,7 +76,7 @@ class AdminProductService extends AdminAbstractServices {
     if (checkProduct.length) {
       return {
         success: false,
-        message: "Product name already exists",
+        message: "Product name in English or Arabic already exists",
       };
     }
 
@@ -107,7 +107,10 @@ class AdminProductService extends AdminAbstractServices {
         p_slug,
       });
       if (checkSlug.length) {
-        p_slug = `${p_slug}-${checkSlug.length + 1}`;
+        return {
+          success: false,
+          message: "Product slug already exists",
+        };
       }
 
       // Insert product
@@ -192,12 +195,7 @@ class AdminProductService extends AdminAbstractServices {
             }
 
             const colorImages: any[] = [];
-            files.forEach((file, i) => {
-              console.log(
-                `fieldname: ${file.fieldname}, colorFiled: ${`colorsPhotos_${
-                  colorIndex + 1
-                }`}`
-              );
+            files.forEach((file) => {
               if (file.fieldname === `colorsPhotos_${colorIndex + 1}`) {
                 colorImages.push({
                   p_id: productId,
@@ -219,11 +217,6 @@ class AdminProductService extends AdminAbstractServices {
             400,
             "Internal server Error"
           );
-          // trx.rollback();
-          // return {
-          //   success: false,
-          //   message: "Color image not inserted",
-          // };
         }
 
         await trx("color_image").insert(flattenedInsertColorImg);
@@ -284,17 +277,14 @@ class AdminProductService extends AdminAbstractServices {
       if (variantInsertedData.length) {
         await trx("variant_product").insert(variantInsertedData);
       }
-      const { barcodeFilePath, qrCodeFilePath, sku } =
-        await new Lib().generateProductAssets(
-          p_slug,
-          parseCategory.join(),
-          productId
-        );
+      console.log("sku", "cate", categoryArray[0].cate_name_en);
+
+      const barcode = new Lib().generateBarCode(productId);
+      const sku = new Lib().generateSKU(productId, p_name_en);
       await trx("product")
         .update({
           sku,
-          barcode: barcodeFilePath,
-          qr_code: qrCodeFilePath,
+          barcode,
         })
         .where({ p_id: productId });
 
@@ -753,15 +743,6 @@ class AdminProductService extends AdminAbstractServices {
           .whereIn("size_id", removedSizes)
           .andWhere("p_id", id);
       }
-
-      if (Object.keys(rest).length !== 0) {
-        await trx("product").update(rest).where("p_id", id);
-      }
-
-      if (removedImage) {
-        await this.manageFile.deleteFromStorage(removedImageName);
-      }
-
       if (rest.p_name_en || rest.p_name_ar) {
         const checkProduct = await this.db("product")
           .select("p_name_en", "p_name_ar")
@@ -778,19 +759,28 @@ class AdminProductService extends AdminAbstractServices {
         if (checkProduct.length) {
           return {
             success: false,
-            message: "Product name already exists",
+            message: "Product name in English or Arabic already exists",
           };
         }
-        if (rest.p_name_en) {
-          const p_slug = Lib.stringToSlug(rest.p_name_en);
-          await trx("product")
-            .update({ p_slug, p_name_en: rest.p_name_en })
-            .where("p_id", id);
-        } else {
-          await trx("product")
-            .update({ p_name_ar: rest.p_name_ar })
-            .where("p_id", id);
+        const p_slug = Lib.stringToSlug(rest.p_name_en);
+        const checkSlug = await this.db("product").select("p_slug").where({
+          p_slug,
+        });
+        if (checkSlug.length) {
+          return {
+            success: false,
+            message: "Product slug already exists",
+          };
         }
+        rest.p_slug = p_slug;
+      }
+
+      if (Object.keys(rest).length !== 0) {
+        await trx("product").update(rest).where("p_id", id);
+      }
+
+      if (removedImage) {
+        await this.manageFile.deleteFromStorage(removedImageName);
       }
 
       return {
@@ -1041,7 +1031,7 @@ class AdminProductService extends AdminAbstractServices {
   // Get All tags
   public async getAllTags(req: Request) {
     const { limit, skip, p_tags } = req.query;
-    console.log("🚀 ~ AdminProductService ~ getAllTags ~ limit:", limit);
+
     const data = await this.db("product")
       .select("p_tags")
       .distinct("p_tags")
