@@ -65,6 +65,6 @@ export const allStrings = [
 export const DATA_LIMIT = 100;
 export const DATA_SKIP = 0;
 
-export const ROOT_FOLDER = "erps3";
+export const ROOT_FOLDER = "memart";
 
 export const CLIENT_URL = "https://memart.online";
