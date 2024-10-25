@@ -212,7 +212,7 @@ class Lib {
     <head>
       <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>ME Mart OTP FOR VERIFY</title>
+      <title>SABA AL WADU OTP FOR VERIFY</title>
     </head>
     <body
       style="
@@ -256,7 +256,7 @@ class Lib {
                         <div style="padding-bottom: 20px">
                           <img
                             src="https://www.memart.online/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fme_logo.e97cc3f6.webp&w=256&q=75"
-                            alt="ME Mart"
+                            alt="SABA AL WADU"
                             style="width: 100px"
                           />
                         </div>
@@ -281,7 +281,7 @@ class Lib {
                           <p style="padding-bottom: 16px">
                             Thanks,<br />
                             <b
-                              >ME Mart</b
+                              >SABA AL WADU</b
                             >
                           </p>
                         </div>

@@ -42,7 +42,7 @@ class CommonService extends CommonAbstractServices {
 
       const sended = await Lib.sendEmail(
         obj.email,
-        `Your One Time Password For ME MART ${obj.otpFor}`,
+        `Your One Time Password For SABA AL WADU ${obj.otpFor}`,
         Lib.generateHtmlOtpPage(otp, obj.otpFor)
       );
 
