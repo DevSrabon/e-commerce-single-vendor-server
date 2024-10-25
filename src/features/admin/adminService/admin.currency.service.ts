@@ -18,7 +18,7 @@ class AdminCurrencyService extends AdminAbstractServices {
 
   // Get all currencies
   public async getAllCurrencies(req: Request) {
-    const currencies = await this.db("currency").select("*").first();
+    const currencies = await this.db("currency").select("*");
     return {
       success: true,
       data: currencies,
