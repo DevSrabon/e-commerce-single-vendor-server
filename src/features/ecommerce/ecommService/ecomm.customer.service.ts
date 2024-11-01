@@ -1,7 +1,6 @@
 import { Request } from "express";
 import Lib from "../../../utils/lib/lib";
 import EcommAbstractServices from "../ecommAbstracts/ecomm.abstract.service";
-import { IAddressUpdateBodyType } from "../ecommUtils/ecommTypes/ecommAddressTypes";
 
 class EcommCustomerService extends EcommAbstractServices {
   constructor() {
@@ -20,12 +19,12 @@ class EcommCustomerService extends EcommAbstractServices {
     const { ec_password, ec_status, ...rest } = customer[0];
     const address = await this.db("ec_shipping_address as esa")
       .select(
-        "esa.ecsa_id as id",
-        "esa.ecsa_label as label",
-        "esa.ecsa_name as name",
-        "esa.ecsa_phone as phone",
-        "esa.ecsa_address as address",
-        "esa.ecsa_landmark as landmark",
+        "esa.id as id",
+        "esa.label as label",
+        "esa.name as name",
+        "esa.phone as phone",
+        "esa.address as address",
+        "esa.landmark as landmark",
         "av.area_id",
         "av.area_name",
         "av.sub_city_id",
@@ -35,10 +34,10 @@ class EcommCustomerService extends EcommAbstractServices {
         "av.province_id",
         "av.province_name"
       )
-      .join("address_view as av", "esa.ecsa_ar_id", "av.area_id")
-      .andWhere("ecsa_ec_id", rest.ec_id)
-      .andWhere("ecsa_status", 1)
-      .orderBy("ecsa_created_at", "desc");
+      .join("address_view as av", "esa.ar_id", "av.area_id")
+      .andWhere("ec_id", rest.ec_id)
+      .andWhere("status", 1)
+      .orderBy("created_at", "desc");
 
     return {
       success: true,
@@ -111,48 +110,54 @@ class EcommCustomerService extends EcommAbstractServices {
 
   // create shipping address
   public async createShippingAddress(req: Request) {
-    const { label, name, phone, address, landmark, ar_id } = req.body;
-    const { ec_id } = req.customer;
-    const res = await this.db("ec_shipping_address").insert({
-      ecsa_ec_id: ec_id,
-      ecsa_label: label,
-      ecsa_name: name,
-      ecsa_phone: phone,
-      ecsa_address: address,
-      ecsa_landmark: landmark,
-      ecsa_ar_id: ar_id,
-    });
+    return await this.db.transaction(async (trx) => {
+      const { ec_id } = req.customer;
+      if (req.body.is_default === 1) {
+        const checkCustomer = await this.db("ec_shipping_address")
+          .select("*")
+          .where({
+            ec_id,
+          })
+          .first();
+        if (checkCustomer) {
+          await this.db("ec_shipping_address")
+            .update({
+              is_default: 0,
+            })
+            .where({ ec_id });
+        }
+      }
 
-    if (res.length) {
-      return {
-        success: true,
-        message: "Shipping address created",
-        data: {
-          ecsa_id: res[0],
-        },
-      };
-    } else {
-      return {
-        success: false,
-        message: "Cannot create shipping address now",
-      };
-    }
+      const res = await trx("ec_shipping_address").insert({
+        ...req.body,
+        ec_id,
+      });
+
+      if (res.length) {
+        return {
+          success: true,
+          message: "Shipping address created",
+          data: {
+            id: res[0],
+          },
+        };
+      } else {
+        return {
+          success: false,
+          message: "Cannot create shipping address now",
+        };
+      }
+    });
   }
 
   // get shipping address
   public async getShippingAddress(customer_id: number) {
-    const data = await this.db("ec_shipping_address")
-      .select(
-        "ecsa_id",
-        "ecsa_label",
-        "ecsa_name",
-        "ecsa_phone",
-        "ecsa_address",
-        "ecsa_landmark"
-      )
-      .andWhere("ecsa_ec_id", customer_id)
-      .andWhere("ecsa_status", 1)
-      .orderBy("ecsa_created_at", "desc");
+    const data = await this.db("ec_shipping_address as ecsa")
+      .select("ecsa.*", "c.c_name_en", "c.c_name_ar")
+      .leftJoin("country as c", "ecsa.country_id", "c.c_id")
+      .andWhere("ecsa.ec_id", customer_id)
+      .andWhere("ecsa.status", 1)
+      .orderBy("ecsa.created_at", "desc");
 
     return {
       success: true,
@@ -161,18 +166,49 @@ class EcommCustomerService extends EcommAbstractServices {
   }
 
   // update shipping address
-  public async updateShippingAddress(
-    address_id: string,
-    body: IAddressUpdateBodyType
-  ) {
+  public async updateShippingAddress(req: Request) {
+    const body = req.body;
+    const id = req.params.id;
+    const checkAddress = await this.db("ec_shipping_address").where("id", id);
+    if (!checkAddress.length) {
+      return {
+        success: false,
+        message: "Address not found",
+      };
+    }
     const res = await this.db("ec_shipping_address")
       .update(body)
-      .where("ecsa_id", address_id);
+      .where("id", id);
 
     if (res) {
       return {
         success: true,
         message: "Shipping address updated",
+      };
+    } else {
+      return {
+        success: false,
+        message: "Something went wrong",
+      };
+    }
+  }
+  // delete shipping address
+  public async deleteShippingAddress(req: Request) {
+    const body = req.body;
+    const id = req.params.id;
+    const checkAddress = await this.db("ec_shipping_address").where("id", id);
+    if (!checkAddress.length) {
+      return {
+        success: false,
+        message: "Address not found",
+      };
+    }
+    const res = await this.db("ec_shipping_address").del().where("id", id);
+
+    if (res) {
+      return {
+        success: true,
+        message: "Shipping address deleted",
       };
     } else {
       return {

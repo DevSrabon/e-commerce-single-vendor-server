@@ -846,7 +846,7 @@ class AdminProductService extends AdminAbstractServices {
 
     const files = (req.files as Express.Multer.File[]) || [];
 
-    if (!files.length) {
+    if (!files.length && !cate_parent_id) {
       return {
         success: false,
         message: "You must provide category image",

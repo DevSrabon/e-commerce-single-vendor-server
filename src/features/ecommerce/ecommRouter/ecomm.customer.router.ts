@@ -1,6 +1,6 @@
-import EcommCustomerValidator from '../ecommUtils/ecommValidator/ecommCustomerValidator';
-import EcommCustomerController from '../ecommController/ecomm.customer.controller';
-import EcommAbstractRouter from '../ecommAbstracts/ecomm.abstract.router';
+import EcommAbstractRouter from "../ecommAbstracts/ecomm.abstract.router";
+import EcommCustomerController from "../ecommController/ecomm.customer.controller";
+import EcommCustomerValidator from "../ecommUtils/ecommValidator/ecommCustomerValidator";
 
 class EcommCustomerRouter extends EcommAbstractRouter {
   private ecommCustomerController = new EcommCustomerController();
@@ -13,20 +13,20 @@ class EcommCustomerRouter extends EcommAbstractRouter {
   private CallRouter() {
     // get profile
     this.router
-      .route('/profile')
+      .route("/profile")
       .get(
         this.authChecker.authChecker,
         this.ecommCustomerController.getCustomerProfileController
       )
       .patch(
         this.authChecker.authChecker,
-        this.uploader.storageUploadRaw('ecommerce/customer'),
+        this.uploader.storageUploadRaw("ecommerce/customer"),
         this.ecommCustomerController.updateCustomerProfileControler
       );
 
     // castomer change password
     this.router
-      .route('/change-password')
+      .route("/change-password")
       .post(
         this.authChecker.authChecker,
         this.ecommCustomerValidator.ChangePasswordValidator(),
@@ -35,7 +35,7 @@ class EcommCustomerRouter extends EcommAbstractRouter {
 
     // create, get customer shipping address router
     this.router
-      .route('/shipping-address')
+      .route("/shipping-address")
       .post(
         this.authChecker.authChecker,
         this.ecommCustomerValidator.createCustomerShippingAddressValidator(),
@@ -48,10 +48,11 @@ class EcommCustomerRouter extends EcommAbstractRouter {
 
     //update, delete customer shipping address router
     this.router
-      .route('/shipping-address/:id')
+      .route("/shipping-address/:id")
       .patch(
         this.authChecker.authChecker,
         this.commonValidator.singleParamInputValidator(),
+        this.ecommCustomerValidator.updateCustomerShippingAddressValidator(),
         this.ecommCustomerController.updateShippingAddressController
       )
       .delete(

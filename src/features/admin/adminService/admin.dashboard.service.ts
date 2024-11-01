@@ -25,19 +25,28 @@ class AdminDashboardService extends AdminAbstractServices {
       .limit(20);
 
     // Fetch total sales for the last 6 months
-    const monthlySales = await this.db.raw(
-      `SELECT
-        DATE_FORMAT(created_at, '%Y-%m') as month,
-        SUM(grand_total) as total_sales
-     FROM
+    const monthlySales = await this.db.raw(`
+      SELECT
+        months.month,
+        COALESCE(SUM(e_order.grand_total), 0) AS total_sales
+      FROM
+        (
+          SELECT DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL num MONTH), '%Y-%m') AS month
+          FROM (
+            SELECT 0 AS num UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+            UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7
+            UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11
+          ) AS numbers
+        ) AS months
+      LEFT JOIN
         e_order
-     WHERE
-        created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-     GROUP BY
-        DATE_FORMAT(created_at, '%Y-%m')
-     ORDER BY
-        DATE_FORMAT(created_at, '%Y-%m')`
-    );
+      ON
+        DATE_FORMAT(e_order.created_at, '%Y-%m') = months.month
+      GROUP BY
+        months.month
+      ORDER BY
+        months.month;
+    `);
 
     const productInformation = await this.db("product_view")
       .select("p_id", "p_name_en", "p_name_ar", "available_stock")
@@ -68,13 +77,18 @@ class AdminDashboardService extends AdminAbstractServices {
       .orderBy("total_sold", "desc")
       .limit(20);
 
+    const todayCurrency = await this.db("currency")
+      .select("aed", "usd", "gbp", "updated_at")
+      .first();
+
     return {
       success: true,
       message: "Dashboard data retrieved successfully",
       data: {
         ...dashboardData,
-        stock_alert_products: stockAlarmProducts, // Add low-stock products
-        monthlySales: monthlySales[0],
+        todayCurrency,
+        stock_alert_products: stockAlarmProducts,
+        monthlySalesLast12Months: monthlySales[0],
         productInformation,
         bestSellingProducts,
       },

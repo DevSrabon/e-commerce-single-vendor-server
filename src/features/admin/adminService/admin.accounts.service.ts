@@ -1,26 +1,23 @@
-import { Request } from 'express';
-import AdminAbstractServices from '../adminAbstracts/admin.abstract.service';
-import { IsingleAccountData } from '../utils/types/accountTypes';
-import http from 'http';
-import https from 'https';
-import fs from 'fs';
+import { Request } from "express";
+import AdminAbstractServices from "../adminAbstracts/admin.abstract.service";
+import { IsingleAccountData } from "../utils/types/accountTypes";
 class AdminAccountsService extends AdminAbstractServices {
   constructor() {
     super();
   }
   // create a account
   public async createAccountService(req: Request) {
-    const res = await this.db('accounts').insert(req.body);
+    const res = await this.db("accounts").insert(req.body);
 
     if (res.length) {
       return {
         success: true,
-        message: 'Account has been created',
+        message: "Account has been created",
       };
     } else {
       return {
         success: false,
-        message: 'Cannot create account',
+        message: "Cannot create account",
       };
     }
   }
@@ -30,11 +27,11 @@ class AdminAccountsService extends AdminAbstractServices {
       ac_name,
       limit,
       skip,
-      order_by = 'ac_name',
-      according_order = 'asc',
+      order_by = "ac_name",
+      according_order = "asc",
     } = req.query;
 
-    const dtbs = this.db('accounts AS ac');
+    const dtbs = this.db("accounts AS ac");
 
     if (limit) {
       dtbs.limit(parseInt(limit as string));
@@ -45,17 +42,17 @@ class AdminAccountsService extends AdminAbstractServices {
 
     const data = await dtbs
       .select(
-        'ac.ac_id',
-        'ac.ac_name',
-        'w.w_id',
-        'w.w_name',
-        'ac.ac_type',
-        'ac.ac_bank_name'
+        "ac.ac_id",
+        "ac.ac_name",
+        "w.w_id",
+        "w.w_name",
+        "ac.ac_type",
+        "ac.ac_bank_name"
       )
-      .join('warehouse AS w', 'ac.ac_w_id', 'w.w_id')
+      .join("warehouse AS w", "ac.ac_w_id", "w.w_id")
       .where(function () {
         if (ac_name) {
-          this.where('ac_name', 'like', `%${ac_name}%`);
+          this.where("ac_name", "like", `%${ac_name}%`);
         }
       })
       .orderBy(order_by as string, according_order as string);
@@ -69,28 +66,28 @@ class AdminAccountsService extends AdminAbstractServices {
   // get single account
   public async getSingleAccountService(req: Request) {
     const { id } = req.params;
-    const data = await this.db('accounts AS ac')
+    const data = await this.db("accounts AS ac")
       .select(
-        'ac.ac_id',
-        'ac.ac_name',
-        'ac.ac_type',
-        'ac.ac_number',
-        'ac.ac_bank_name',
-        'ac.ac_bank_branch',
-        'ac.ac_details',
-        'ac.ac_created_at',
-        'w.w_id',
-        'w.w_name',
-        'w.w_phone',
-        'w.w_email',
-        'at.ac_tr_id',
-        'at.ac_tr_type',
-        'at.ac_tr_amount',
-        'at.ac_tr_date'
+        "ac.ac_id",
+        "ac.ac_name",
+        "ac.ac_type",
+        "ac.ac_number",
+        "ac.ac_bank_name",
+        "ac.ac_bank_branch",
+        "ac.ac_details",
+        "ac.ac_created_at",
+        "w.w_id",
+        "w.w_name",
+        "w.w_phone",
+        "w.w_email",
+        "at.ac_tr_id",
+        "at.ac_tr_type",
+        "at.ac_tr_amount",
+        "at.ac_tr_date"
       )
-      .join('warehouse As w', 'ac.ac_w_id', 'w.w_id')
-      .leftJoin('ac_transaction AS at', 'ac.ac_id', 'at.ac_tr_ac_id')
-      .where('ac.ac_id', id);
+      .join("warehouse As w", "ac.ac_w_id", "w.w_id")
+      .leftJoin("ac_transaction AS at", "ac.ac_id", "at.ac_tr_ac_id")
+      .where("ac.ac_id", id);
 
     let data2: IsingleAccountData[] = [];
 
@@ -147,7 +144,7 @@ class AdminAccountsService extends AdminAbstractServices {
     } else {
       return {
         success: false,
-        message: 'Account not found with this id',
+        message: "Account not found with this id",
       };
     }
   }
@@ -155,28 +152,28 @@ class AdminAccountsService extends AdminAbstractServices {
   // update single account
   public async updateSingleAccountService(req: Request) {
     const { id } = req.params;
-    const checkAcc = await this.db('accounts')
-      .select('ac_id')
+    const checkAcc = await this.db("accounts")
+      .select("ac_id")
       .where({ ac_id: id });
 
     if (!checkAcc.length) {
       return {
         success: false,
-        message: 'Account not found with this id',
+        message: "Account not found with this id",
       };
     }
 
-    const res = await this.db('accounts').update(req.body).where({ ac_id: id });
+    const res = await this.db("accounts").update(req.body).where({ ac_id: id });
 
     if (res) {
       return {
         success: true,
-        message: 'Account has been updated',
+        message: "Account has been updated",
       };
     } else {
       return {
         success: false,
-        message: 'Cannot update this account',
+        message: "Cannot update this account",
       };
     }
   }
@@ -190,15 +187,15 @@ class AdminAccountsService extends AdminAbstractServices {
       to_date,
       limit,
       skip,
-      order_by = 'ac_name',
-      according_order = 'asc',
+      order_by = "ac_name",
+      according_order = "asc",
     } = req.query;
 
     let endDate: any = new Date(to_date as string);
 
     endDate.setDate(endDate.getDate() + 1);
 
-    const dtbs = this.db('ac_transaction AS at');
+    const dtbs = this.db("ac_transaction AS at");
 
     if (limit) {
       dtbs.limit(parseInt(limit as string));
@@ -211,25 +208,25 @@ class AdminAccountsService extends AdminAbstractServices {
 
     const data = await dtbs
       .select(
-        'ac.ac_id',
-        'ac.ac_name',
-        'w.w_id',
-        'w.w_name',
-        'at.ac_tr_type',
-        'at.ac_tr_amount',
-        'at.ac_tr_date'
+        "ac.ac_id",
+        "ac.ac_name",
+        "w.w_id",
+        "w.w_name",
+        "at.ac_tr_type",
+        "at.ac_tr_amount",
+        "at.ac_tr_date"
       )
-      .join('accounts AS ac', 'at.ac_tr_ac_id', 'ac.ac_id')
-      .join('warehouse AS w', 'ac.ac_w_id', 'w.w_id')
+      .join("accounts AS ac", "at.ac_tr_ac_id", "ac.ac_id")
+      .join("warehouse AS w", "ac.ac_w_id", "w.w_id")
       .where(function () {
         if (ac_name) {
-          this.where('ac.ac_name', 'like', `%${ac_name}%`);
+          this.where("ac.ac_name", "like", `%${ac_name}%`);
         }
         if (ac_tr_type) {
-          this.where('at.ac_tr_type', ac_tr_type);
+          this.where("at.ac_tr_type", ac_tr_type);
         }
         if (from_date && to_date) {
-          this.whereBetween('at.ac_tr_date', [from_date as string, endDate]);
+          this.whereBetween("at.ac_tr_date", [from_date as string, endDate]);
         }
       })
       .orderBy(order_by as string, according_order as string);
@@ -248,14 +245,14 @@ class AdminAccountsService extends AdminAbstractServices {
       limit,
       skip,
       account_id,
-      order_by = 'acc_ledger_id',
-      according_order = 'asc',
+      order_by = "acc_ledger_id",
+      according_order = "asc",
     } = req.query;
 
     let endDate: any = new Date(to_date as string);
     endDate.setDate(endDate.getDate() + 1);
 
-    const dtbs = this.db('acc_ledger AS al');
+    const dtbs = this.db("acc_ledger AS al");
 
     if (limit) {
       dtbs.limit(parseInt(limit as string));
@@ -266,22 +263,22 @@ class AdminAccountsService extends AdminAbstractServices {
 
     const data = await dtbs
       .select(
-        'al.acc_ledger_id',
-        'al.acc_ledger_account_id',
-        'ac.ac_name',
-        'ac.ac_bank_name',
-        'ac.ac_type AS transaction_type',
-        'al.acc_ledger_debit_amount',
-        'al.acc_ledger_credit_amount',
-        'al.acc_ledger_balance',
-        'al.acc_ledger_details',
-        'acc_transacation_date'
+        "al.acc_ledger_id",
+        "al.acc_ledger_account_id",
+        "ac.ac_name",
+        "ac.ac_bank_name",
+        "ac.ac_type AS transaction_type",
+        "al.acc_ledger_debit_amount",
+        "al.acc_ledger_credit_amount",
+        "al.acc_ledger_balance",
+        "al.acc_ledger_details",
+        "acc_transacation_date"
       )
-      .join('accounts AS ac', 'al.acc_ledger_account_id', 'ac.ac_id')
+      .join("accounts AS ac", "al.acc_ledger_account_id", "ac.ac_id")
       .where(function () {
-        this.andWhere('al.acc_ledger_account_id', account_id);
+        this.andWhere("al.acc_ledger_account_id", account_id);
         if (from_date && to_date) {
-          this.whereBetween('al.acc_transacation_date', [
+          this.whereBetween("al.acc_transacation_date", [
             from_date as string,
             endDate,
           ]);

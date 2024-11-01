@@ -42,15 +42,12 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
         "ec.ec_name",
         "ec.ec_id",
         "ec_image",
-        "esa.ecsa_address",
+        "esa.street_address",
         "eo.created_at"
-        // 'av.area_name',
-        // 'av.sub_city_name',
-        // 'av.city_name',
-        // 'av.province_name'
       )
       .join("e_customer AS ec", "eo.ec_id", "ec.ec_id")
-      .join("ec_shipping_address AS esa", "eo.ecsa_id", "esa.ecsa_id")
+      .join("ec_shipping_address AS esa", "eo.ecsa_id", "esa.id")
+      .orderBy("eo.created_at", "desc")
       .where(function () {
         if (from_date && to_date) {
           this.andWhereBetween("eo.created_at", [from_date as string, endDate]);
@@ -76,7 +73,7 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
     const count = await this.db("e_order AS eo")
       .count("eo.id AS total")
       .join("e_customer AS ec", "eo.ec_id", "ec.ec_id")
-      .join("ec_shipping_address AS esa", "eo.ecsa_id", "esa.ecsa_id")
+      .join("ec_shipping_address AS esa", "eo.id", "esa.id")
       .where(function () {
         if (from_date && to_date) {
           this.andWhereBetween("eo.created_at", [from_date as string, endDate]);
@@ -126,96 +123,66 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
         "ec.ec_name",
         "ec.ec_phone",
         "ec.ec_email",
-        "esa.ecsa_label",
-        "esa.ecsa_address",
-        "esa.ecsa_landmark",
+        "esa.label",
+        "esa.street_address"
+        // "esa.landmark",
         // "av.area_name",
         // "av.sub_city_name",
         // "av.city_name",
         // "av.province_name",
+        // "eod.ep_id",
+        // "eod.ep_name",
+        // "epv.p_images",
+        // "eod.price",
+        // "eod.quantity",
+        // "eod.v_id"
+        // "atv.av_value"
+      )
+      .leftJoin("e_customer AS ec", "eo.ec_id", "ec.ec_id")
+      .leftJoin("ec_shipping_address AS esa", "eo.id", "esa.id")
+      // .leftJoin("address_view AS av", "esa.ar_id", "av.area_id")
+      // .leftJoin("e_order_details AS eod", "eo.id", "eod.id")
+
+      // .leftJoin("product_view AS epv", "eod.ep_id", "epv.ep_id")
+      // .leftJoin("attribute_value AS atv", "eod.v_id", "atv.v_id")
+      .where("eo.id", id);
+
+    const order_details = await this.db("e_order_details AS eod")
+      .select(
+        "eod.id",
+        "eod.eo_id",
         "eod.ep_id",
-        "eod.ep_name",
-        "epv.p_images",
+        "eod.ep_name_en",
+        "eod.ep_name_ar",
         "eod.price",
         "eod.quantity",
         "eod.v_id",
-        "atv.av_value"
+        "eod.size_id",
+        "eod.color_id",
+        "eod.created_at",
+        "f.name_en as fabric_name_en",
+        "f.name_ar as fabric_name_ar",
+        "f.details_en as fabric_details_en",
+        "f.details_ar as fabric_details_ar",
+        "sz.size",
+        this.db.raw(`CONCAT(sz.height, sz.attribute) AS height`),
+        this.db.raw(`CONCAT(sz.weight, sz.attribute) AS weight`),
+        "sz.details",
+        // "cl.name_en as color_name_en",
+        // "cl.name_ar as color_name_ar",
+        this.db.raw(`
+          (
+            SELECT JSON_ARRAYAGG(pi.image)
+            FROM color_image AS pi
+            WHERE pi.p_color_id = cl.id
+          ) AS color_images
+        `)
       )
-      .leftJoin("e_customer AS ec", "eo.ec_id", "ec.ec_id")
-      .leftJoin("ec_shipping_address AS esa", "eo.ecsa_id", "esa.ecsa_id")
-      .leftJoin("address_view AS av", "esa.ecsa_ar_id", "av.area_id")
-      .leftJoin("e_order_details AS eod", "eo.id", "eod.id")
-
-      .leftJoin("product_view AS epv", "eod.ep_id", "epv.ep_id")
-      .leftJoin("attribute_value AS atv", "eod.v_id", "atv.v_id")
-      .where("eo.id", id);
-    console.log({ data });
-
-    const data2 = [];
-
-    for (let i = 0; i < data.length; i++) {
-      let found = false;
-
-      for (let j = 0; j < data2.length; j++) {
-        if (data[i].id === data2[j].id) {
-          found = true;
-
-          data2[j].products.push({
-            ep_id: data[i].ep_id,
-            ep_name: data[i].ep_name,
-            p_images: data[i].p_images,
-            price: data[i].price,
-            quantity: data[i].quantity,
-            attributes: data[i].v_id
-              ? {
-                  v_id: data[i].v_id,
-                  av_value: data[i].av_value,
-                }
-              : {},
-          });
-        }
-      }
-      if (!found) {
-        data2.push({
-          id: data[i].id,
-          status: data[i].status,
-          payment_status: data[i].payment_status,
-          total: data[i].total,
-          discount: data[i].discount,
-          delivery_charge: data[i].delivery_charge,
-          grand_total: data[i].grand_total,
-          remarks: data[i].remarks,
-          created_at: data[i].created_at,
-          updated_at: data[i].updated_at,
-          ec_id: data[i].ec_id,
-          ec_name: data[i].ec_name,
-          ec_phone: data[i].ec_phone,
-          ec_email: data[i].ec_email,
-          ecsa_label: data[i].ecsa_label,
-          ecsa_address: data[i].ecsa_address,
-          ecsa_landmark: data[i].ecsa_landmark,
-          area_name: data[i].area_name,
-          sub_city_name: data[i].sub_city_name,
-          city_name: data[i].city_name,
-          province_name: data[i].province_name,
-          products: [
-            {
-              ep_id: data[i].ep_id,
-              ep_name: data[i].ep_name,
-              p_images: data[i].p_images,
-              price: data[i].price,
-              quantity: data[i].quantity,
-              attributes: data[i].v_id
-                ? {
-                    v_id: data[i].v_id,
-                    av_value: data[i].av_value,
-                  }
-                : {},
-            },
-          ],
-        });
-      }
-    }
+      .leftJoin("variant_product AS v", "eod.v_id", "v.id")
+      .leftJoin("fabric as f", "v.fabric_id", "f.id")
+      .leftJoin("size AS sz", "eod.size_id", "sz.id")
+      .leftJoin("color AS cl", "eod.color_id", "cl.id")
+      .where("eod.eo_id", id);
 
     const order_tracking_status = await this.db("e_order_tracking")
       .select("status", "details", "date_time")
@@ -224,12 +191,12 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
     if (data.length) {
       return {
         success: true,
-        data: { ...data2[0], order_tracking_status },
+        data: { ...data[0], order_details, order_tracking_status },
       };
     } else {
       return {
         success: false,
-        message: "Order doesnot found with this id",
+        message: "Order doesn't found with this id",
       };
     }
   }

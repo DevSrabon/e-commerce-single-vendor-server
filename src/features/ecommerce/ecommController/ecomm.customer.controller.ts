@@ -67,12 +67,7 @@ class EcommCustomerController extends EcommAbstractController {
   // update customer shipping address controller
   public updateShippingAddressController = this.asyncWrapper.wrap(
     async (req: Request, res: Response) => {
-      const { id } = req.params;
-      const body = req.body;
-      const data = await this.ecommCustomerService.updateShippingAddress(
-        id,
-        body
-      );
+      const data = await this.ecommCustomerService.updateShippingAddress(req);
       if (data.success) {
         res.status(201).json(data);
       } else {
@@ -97,10 +92,7 @@ class EcommCustomerController extends EcommAbstractController {
   // delete customer shipping address controller
   public deleteShippingAddressController = this.asyncWrapper.wrap(
     async (req: Request, res: Response) => {
-      const { id } = req.params;
-      const data = await this.ecommCustomerService.updateShippingAddress(id, {
-        ecsa_status: 0,
-      });
+      const data = await this.ecommCustomerService.deleteShippingAddress(req);
       if (data.success) {
         res.status(201).json(data);
       } else {

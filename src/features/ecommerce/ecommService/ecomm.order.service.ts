@@ -3,6 +3,9 @@ import EcommAbstractServices from "../ecommAbstracts/ecomm.abstract.service";
 import EcommProductService from "./ecomm.product.service";
 
 interface IOrderProduct {
+  color_id: number;
+  size_id: number;
+  price: number;
   id: number;
   v_id?: number;
   quantity: number;
@@ -15,6 +18,8 @@ interface IOrderProductDetails {
   price: number;
   quantity: number;
   v_id: number;
+  size_id: number;
+  color_id: number;
 }
 
 class EcommOrderService extends EcommAbstractServices {
@@ -26,13 +31,18 @@ class EcommOrderService extends EcommAbstractServices {
   // customer place order service
   public async ecommPlaceOrderService(req: Request) {
     const { ec_id } = req.customer;
-    const { address_id, products, color_id, size_id, delivery_charge } =
-      req.body;
+    const {
+      address_id,
+      products,
+      coupon,
+      currency,
+      delivery_charge = 0,
+    } = req.body;
     const pId: number[] = products.map((item: IOrderProduct) => item.id);
     const checkAddress = await this.db("ec_shipping_address")
-      .select("ecsa_id")
-      .where("ecsa_ec_id", ec_id)
-      .andWhere("ecsa_id", address_id);
+      .select("id")
+      .where("ec_id", ec_id)
+      .andWhere("id", address_id);
 
     if (!checkAddress.length) {
       return {
@@ -51,7 +61,7 @@ class EcommOrderService extends EcommAbstractServices {
 
     let total = 0;
     let stockOut: string | null = null;
-
+    console.log({ products });
     const productDetails: IOrderProductDetails[] = products.map(
       (item: IOrderProduct) => {
         const currProduct = orderProduct.find(
@@ -61,17 +71,17 @@ class EcommOrderService extends EcommAbstractServices {
         if (currProduct?.available_stock < item.quantity) {
           stockOut = `${currProduct.p_name_en} is out of stock!`;
         }
-        total += parseInt(currProduct.base_special_price);
+        total += parseInt(item.price.toString()) * item.quantity;
 
         return {
           ep_id: currProduct.p_id,
           ep_name_en: currProduct.p_name_en,
           ep_name_ar: currProduct.p_name_ar,
-          price: currProduct.base_special_price,
+          price: item.price,
           quantity: item.quantity,
           v_id: item.v_id || null,
-          color_id,
-          size_id,
+          color_id: item.color_id || null,
+          size_id: item.size_id || null,
         };
       }
     );
@@ -82,14 +92,58 @@ class EcommOrderService extends EcommAbstractServices {
         message: stockOut,
       };
     }
+    let grand_total = total;
+    let discount = 0;
+
+    if (delivery_charge) {
+      grand_total += parseInt(delivery_charge);
+    }
+    if (coupon) {
+      const getCoupon = await this.db("coupons")
+        .select("discount", "discount_type")
+        .where("id", coupon)
+        .first();
+      if (!getCoupon) {
+        return {
+          success: false,
+          message: "Invalid coupon code",
+        };
+      }
+
+      switch (getCoupon.discount_type) {
+        case "percentage":
+          discount = (grand_total * Number(getCoupon.discount)) / 100;
+          break;
+        case "fixed":
+          discount = Number(getCoupon.discount);
+          break;
+        default:
+          discount = 0;
+      }
+      grand_total -= discount;
+    }
+
+    let order_no = "1000";
+    const getLastOrder = await this.db("e_order")
+      .select("order_no")
+      .whereNotNull("order_no")
+      .orderBy("order_no", "desc")
+      .first();
+    if (getLastOrder) {
+      order_no = (+getLastOrder.order_no + 1).toString();
+    }
 
     return await this.db.transaction(async (trx) => {
       const order = await trx("e_order").insert({
         ec_id: ec_id,
         ecsa_id: address_id,
         total: total,
-        delivery_charge: delivery_charge,
-        grand_total: total + parseInt(delivery_charge),
+        discount,
+        currency,
+        order_no,
+        coupon,
+        delivery_charge,
+        grand_total,
       });
 
       const currProductDetails = productDetails.map((item) => {
@@ -156,37 +210,27 @@ class EcommOrderService extends EcommAbstractServices {
     const { ecsa_id, ...rest } = order[0];
 
     const address = await this.db("ec_shipping_address as esa")
-      .select(
-        "esa.ecsa_id as id",
-        "esa.ecsa_label as label",
-        "esa.ecsa_name as name",
-        "esa.ecsa_phone as phone",
-        "esa.ecsa_address as address",
-        "av.area_id",
-        "av.area_name",
-        "av.sub_city_id",
-        "av.sub_city_name",
-        "av.city_id",
-        "av.city_name",
-        "av.province_id",
-        "av.province_name"
-      )
-      .join("address_view as av", "esa.ecsa_ar_id", "av.area_id")
-      .where("ecsa_id", ecsa_id);
+      .select("esa.*", "c.c_name_en", "c.c_name_ar")
+      .join("country as c", "esa.country_id", "c.c_id")
+      .where("esa.id", ecsa_id);
 
     const products = await this.db("e_order_details as eod")
       .select(
         "eod.id as id",
-        "eod.ep_name as name",
+        "eod.ep_name_en as ep_name_en",
+        "eod.ep_name_ar as ep_name_ar",
         "eod.price as price",
         "eod.quantity as quantity",
-        "av.v_id",
-        "av.av_value",
-        "a.a_name as attribute"
+        "eod.color_id as color_id",
+        "cl.color_en",
+        "cl.color_ar",
+        "sz.size"
       )
-      .leftJoin("attribute_value as av", "eod.v_id", "av.v_id")
-      .leftJoin("attribute as a", "av.av_a_id", "a.a_id")
-      .where("id", id);
+      .leftJoin("color as cl", "eod.color_id", "cl.id")
+      .leftJoin("size as sz", "eod.size_id", "sz.id")
+      .leftJoin("variant_product as av", "eod.v_id", "av.id")
+      .leftJoin("fabric as fa", "av.fabric_id", "fa.id")
+      .where("eod.eo_id", order[0].id);
 
     return {
       success: true,

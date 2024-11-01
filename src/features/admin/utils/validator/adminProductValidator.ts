@@ -215,6 +215,10 @@ class AdminProductValidator {
         .withMessage("Weight must be a string")
         .isLength({ max: 45 })
         .withMessage("Weight cannot exceed 45 characters"),
+      body("attribute")
+        .notEmpty()
+        .exists()
+        .withMessage("Attribute is required"),
       body("details")
         .optional()
         .isString()
