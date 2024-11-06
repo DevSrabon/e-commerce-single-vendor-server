@@ -18,26 +18,11 @@ class EcommCustomerService extends EcommAbstractServices {
     }
     const { ec_password, ec_status, ...rest } = customer[0];
     const address = await this.db("ec_shipping_address as esa")
-      .select(
-        "esa.id as id",
-        "esa.label as label",
-        "esa.name as name",
-        "esa.phone as phone",
-        "esa.address as address",
-        "esa.landmark as landmark",
-        "av.area_id",
-        "av.area_name",
-        "av.sub_city_id",
-        "av.sub_city_name",
-        "av.city_id",
-        "av.city_name",
-        "av.province_id",
-        "av.province_name"
-      )
-      .join("address_view as av", "esa.ar_id", "av.area_id")
-      .andWhere("ec_id", rest.ec_id)
-      .andWhere("status", 1)
-      .orderBy("created_at", "desc");
+      .select("esa.*", "c.c_name_en", "c.c_name_ar")
+      .join("country as c", "esa.country_id", "c.c_id")
+      .andWhere("esa.ec_id", rest.ec_id)
+      .andWhere("esa.status", 1)
+      .orderBy("esa.created_at", "desc");
 
     return {
       success: true,
@@ -76,13 +61,12 @@ class EcommCustomerService extends EcommAbstractServices {
   // update customer profile
   public async updateCustomerProfile(req: Request) {
     const { ec_id } = req.customer;
-    const { ec_phone } = req.body;
 
     const checkCustomer = await this.db("e_customer")
       .select("ec_image")
       .where({ ec_id });
 
-    const body: { ec_image?: string; ec_phone: string } = { ec_phone };
+    const body = req.body;
     const files = (req.files as Express.Multer.File[]) || [];
     if (files.length) {
       body["ec_image"] = files[0].filename;
@@ -115,9 +99,10 @@ class EcommCustomerService extends EcommAbstractServices {
       if (req.body.is_default === 1) {
         const checkCustomer = await this.db("ec_shipping_address")
           .select("*")
-          .where({
+          .andWhere({
             ec_id,
           })
+          .andWhere("is_default", 1)
           .first();
         if (checkCustomer) {
           await this.db("ec_shipping_address")
@@ -168,6 +153,7 @@ class EcommCustomerService extends EcommAbstractServices {
   // update shipping address
   public async updateShippingAddress(req: Request) {
     const body = req.body;
+    const { ec_id } = req.customer;
     const id = req.params.id;
     const checkAddress = await this.db("ec_shipping_address").where("id", id);
     if (!checkAddress.length) {
@@ -175,6 +161,22 @@ class EcommCustomerService extends EcommAbstractServices {
         success: false,
         message: "Address not found",
       };
+    }
+    if (req.body.is_default === 1) {
+      const checkCustomer = await this.db("ec_shipping_address")
+        .select("*")
+        .andWhere({
+          ec_id: id,
+        })
+        .andWhere("is_default", 1)
+        .first();
+      if (checkCustomer) {
+        await this.db("ec_shipping_address")
+          .update({
+            is_default: 0,
+          })
+          .where({ ec_id });
+      }
     }
     const res = await this.db("ec_shipping_address")
       .update(body)

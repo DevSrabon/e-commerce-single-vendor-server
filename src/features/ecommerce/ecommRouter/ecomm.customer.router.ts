@@ -20,7 +20,7 @@ class EcommCustomerRouter extends EcommAbstractRouter {
       )
       .patch(
         this.authChecker.authChecker,
-        this.uploader.storageUploadRaw("ecommerce/customer"),
+        this.uploader.storageUploadRaw("ecommerce/profile"),
         this.ecommCustomerController.updateCustomerProfileControler
       );
 

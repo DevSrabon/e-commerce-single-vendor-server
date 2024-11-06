@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
+import Stripe from "stripe";
+import { db } from "../app/database";
 import CommonAbstractServices from "../features/common/commonAbstract/common.abstract.service";
+import config from "../utils/config/config";
 
 class Webhooks extends CommonAbstractServices {
   constructor() {
@@ -7,16 +10,102 @@ class Webhooks extends CommonAbstractServices {
   }
   public async stripeWebhook(req: Request, res: Response) {
     const event = req.body;
-
+    const stripe = new Stripe(config.STRIPE_SECRET_KEY);
     // Handle the event
     switch (event.type) {
       case "payment_intent.succeeded":
         const paymentIntent = event.data.object;
-        console.log("Payment succeeded:", paymentIntent);
+        console.log(
+          console.table({ paymentIntent: JSON.stringify(paymentIntent) })
+        );
 
-        // Retrieve order ID from metadata
         const orderId = paymentIntent.metadata.order_id;
-        console.log(`Order ID from payment intent: ${orderId}`);
+        const order = await db("e_order as eo")
+          .select("eo.*", "ec.ec_email", "esa.*", "c.c_name_en")
+          .join("e_customer as ec", "ec.ec_id", "eo.ec_id")
+          .join("ec_shipping_address as esa", "esa.id", "eo.ecsa_id")
+          .join("country as c", "c.c_id", "esa.country_id")
+          .where("eo.id", orderId)
+          .first();
+        const paymentIntentCurrency = paymentIntent.currency.toLowerCase();
+
+        if (!order) {
+          try {
+            const refund = await stripe.refunds.create({
+              payment_intent: paymentIntent.id,
+            });
+
+            console.log("Refund successful:", refund.id);
+          } catch (error) {
+            console.error("Failed to issue refund:", error);
+          }
+          return;
+        } else {
+          const getCurrency = await db("currency").where("status", 1).first();
+          let amountInAED = 0;
+          const paymentIntentAmount = Number(
+            paymentIntentCurrency === "gbp"
+              ? paymentIntent.amount / 100
+              : paymentIntent.amount
+          );
+          if (getCurrency) {
+            const aedRate = Number(getCurrency.aed);
+            const usdRate = aedRate / Number(getCurrency.usd);
+            const gbpRate = aedRate / Number(getCurrency.gbp);
+
+            if (paymentIntentCurrency === "aed") {
+              amountInAED = paymentIntentAmount;
+            } else if (paymentIntentCurrency === "usd" && usdRate) {
+              // Convert USD to AED
+              amountInAED = paymentIntentAmount * usdRate;
+            } else if (paymentIntentCurrency === "gbp" && gbpRate) {
+              // Convert GBP to AED
+              amountInAED = paymentIntentAmount * gbpRate;
+            }
+          }
+
+          // Stripe Charges
+
+          const paymentMethod = await stripe.paymentMethods.retrieve(
+            paymentIntent.payment_method
+          );
+          const cardType = paymentMethod.card?.brand;
+
+          await db("e_order")
+            .update({
+              trx_id: paymentIntent.id,
+              payment_status: 1,
+              payment_type: cardType,
+              status: "processing",
+            })
+            .where("id", orderId);
+
+          await db("account_ledger").insert({
+            account_id: 1,
+            voucher_no: order.order_no,
+            amount: amountInAED,
+            type: "IN",
+            details: `Order ${order.order_no} payment received`,
+            tr_type: "E-commerce Payment",
+            payment_method: "Stripe",
+            ledger_date: new Date(),
+          });
+
+          // await sendEmail({
+          //   to: order.ec_email,
+          //   subject: "Payment Confirmation",
+          //   body: createPaymentConfirmationEmail({
+          //     amountPaid: paymentIntentAmount,
+          //     currency: paymentIntentCurrency,
+          //     customer: {
+          //       name: order.name,
+          //       email: order.ec_email,
+          //       address: `${order.apt}, ${order.street_address}, ${order.city}, ${order.state}, ${order.c_name_en}, ${order.zip_code}`,
+          //     },
+          //     paymentDate: new Date().toDateString(),
+          //   }),
+          // });
+        }
 
         break;
 

@@ -16,26 +16,27 @@ class AdminOfferService extends AdminAbstractServices {
     const { au_id } = req.user;
     const { product_ids, offer_name_en, offer_name_ar, ...rest } = req.body;
     const files = (req.files as Express.Multer.File[]) || [];
-    const productIds: IOfferProducts[] = product_ids
-      ? JSON.parse(product_ids)
-      : [];
-    if (!files.length) {
-      return {
-        success: false,
-        message: "You must provide product image",
-      };
-    }
-    const checkOffer = await this.db("offers")
-      .select("id")
-      .where({ offer_name_en })
-      .orWhere({ offer_name_ar });
-    if (checkOffer.length) {
-      return {
-        success: false,
-        message: "offer name already exits",
-      };
-    }
     return await this.db.transaction(async (trx) => {
+      const productIds: IOfferProducts[] = product_ids
+        ? JSON.parse(product_ids)
+        : [];
+      if (!files.length) {
+        return {
+          success: false,
+          message: "You must provide offer image",
+        };
+      }
+      const checkOffer = await trx("offers")
+        .select("id")
+        .where({ offer_name_en })
+        .orWhere({ offer_name_ar });
+      if (checkOffer.length) {
+        return {
+          success: false,
+          message: "offer name already exits",
+        };
+      }
+
       const offer_slug = Lib.stringToSlug(offer_name_en);
       rest.offer_image = files[0].filename;
       const insertOffer = await trx("offers").insert({
@@ -118,10 +119,28 @@ class AdminOfferService extends AdminAbstractServices {
         message: "Offer not found",
       };
     }
-
     const offerProducts = await this.db("offer_products as opd")
-      .select("*")
+      .select(
+        "opd.id",
+        "opd.offer_id",
+        "opd.p_id",
+        "p.p_name_en",
+        "p.p_name_ar",
+        "p.p_status",
+        "p.categories",
+        this.db.raw(
+          'JSON_UNQUOTE(JSON_EXTRACT(p.p_images, "$[0].image")) AS p_image'
+        ),
+        this.db.raw(`
+          JSON_ARRAY(
+            (JSON_EXTRACT(colors, '$[*].color_name_en'))
+          ) AS color_names
+        `),
+        "p.sizes",
+        "p.variants"
+      )
       .join("product_view as p", "opd.p_id", "=", "p.p_id")
+
       .where("opd.offer_id", id);
 
     return {

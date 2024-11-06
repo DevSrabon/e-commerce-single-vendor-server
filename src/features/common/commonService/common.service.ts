@@ -193,9 +193,14 @@ class CommonService extends CommonAbstractServices {
         "ec_image",
         "ec_email",
         "ec_password",
+        "currency",
+        "c_name_en",
+        "c_name_ar",
+        "country_id",
         "ec_status",
         "ec_is_deleted"
       )
+      .leftJoin("country", "c_id", "country_id")
       .where("ec_email", email);
 
     return checkCustomer;
@@ -220,6 +225,7 @@ class CommonService extends CommonAbstractServices {
       description?: string;
       image?: string;
     }[];
+    orderId: string;
     discount?: number;
     currency: string;
     deliveryCharge?: number;
@@ -234,23 +240,27 @@ class CommonService extends CommonAbstractServices {
 
     let coupon;
 
-    // If discount is provided, create a coupon dynamically
     if (payload.discount) {
       if (payload.discount > 0 && payload.discount <= 100) {
         coupon = await stripe.coupons.create({
-          percent_off: payload.discount,
+          percent_off:
+            payload.currency.toLowerCase() === "aed"
+              ? payload.discount
+              : payload.discount,
           duration: "once",
         });
       } else if (payload.discount > 100) {
         coupon = await stripe.coupons.create({
-          amount_off: payload.discount * 100,
+          amount_off:
+            payload.currency.toLowerCase() === "aed"
+              ? payload.discount
+              : payload.discount * 100,
           currency: payload.currency,
           duration: "once",
         });
       }
     }
 
-    // Create line items dynamically from the payload
     const lineItems: {
       price_data: {
         currency: string;
@@ -268,9 +278,12 @@ class CommonService extends CommonAbstractServices {
         product_data: {
           name: item.name,
           images: item.image ? [item.image] : [],
-          description: item.description || "",
+          description: item.description || undefined,
         },
-        unit_amount: item.amount * 100, // Convert to cents
+        unit_amount:
+          payload.currency.toLowerCase() === "aed"
+            ? item.amount
+            : item.amount * 100,
       },
       quantity: item.quantity,
     }));
@@ -283,7 +296,10 @@ class CommonService extends CommonAbstractServices {
           product_data: {
             name: "Delivery Charge",
           },
-          unit_amount: payload.deliveryCharge * 100, // Convert to cents
+          unit_amount:
+            payload.currency.toLowerCase() === "aed"
+              ? payload.deliveryCharge
+              : payload.deliveryCharge * 100,
         },
         quantity: 1,
       });
@@ -297,12 +313,14 @@ class CommonService extends CommonAbstractServices {
           product_data: {
             name: "Taxes",
           },
-          unit_amount: payload.taxAmount * 100, // Convert to cents
+          unit_amount:
+            payload.currency.toLowerCase() === "aed"
+              ? payload.taxAmount
+              : payload.taxAmount * 100,
         },
         quantity: 1,
       });
     }
-
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: lineItems,
@@ -310,19 +328,14 @@ class CommonService extends CommonAbstractServices {
       discounts: coupon ? [{ coupon: coupon.id }] : [],
       success_url: `http://localhost:3000/success?order_id=1`,
       cancel_url: `http://localhost:3000/cancel?order_id=1`,
-      metadata: {
-        order_id: "1", // Use a string for metadata
-        customer_name: payload.customer.name,
-      },
+
+      customer_email: payload.customer.email,
       payment_intent_data: {
         metadata: {
-          order_id: "1", // Also include it in the payment intent metadata
+          order_id: payload.orderId,
         },
       },
     });
-
-    // Update the order with the Stripe session ID
-
     return {
       redirect_url: session.url,
     };

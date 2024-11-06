@@ -21,6 +21,7 @@ interface ENV {
   AWS_S3_SECRET_KEY: string | undefined;
   CURRENCY_API_KEY: string | undefined;
   STRIPE_SECRET_KEY: string | undefined;
+  AWS_S3_BASE_URL: string | undefined;
 }
 
 // Config types
@@ -41,6 +42,7 @@ interface Config {
   AWS_S3_SECRET_KEY: string;
   CURRENCY_API_KEY: string;
   STRIPE_SECRET_KEY: string;
+  AWS_S3_BASE_URL: string;
 }
 
 // Loading process.env as  ENV interface
@@ -61,6 +63,7 @@ const getConfig = (): ENV => {
     AWS_S3_SECRET_KEY: process.env.AWS_S3_SECRET_KEY,
     CURRENCY_API_KEY: process.env.CURRENCY_API_KEY,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    AWS_S3_BASE_URL: process.env.AWS_S3_BASE_URL,
   };
 };
 
