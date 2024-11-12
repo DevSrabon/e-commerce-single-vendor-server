@@ -151,7 +151,7 @@ class EcommOrderService extends EcommAbstractServices {
         currency,
         order_no,
         coupon,
-        delivery_charge,
+        delivery_charge: deliveryCharge,
         grand_total,
       });
       const currProductDetails = productDetails.map((item) => {
