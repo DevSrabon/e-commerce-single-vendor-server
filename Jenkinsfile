@@ -1,6 +1,6 @@
 pipeline {
     agent any
-    tools { nodejs 'Node' } // Specify the Node.js installation name in Jenkins
+    tools { nodejs 'Node' }
     stages {
         stage('Install') {
             steps {
@@ -17,7 +17,18 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying application...'
-                sh 'pm2 restart all'
+                script {
+                    def appName = "server" // Replace with your actual app name
+                    def isRunning = sh(script: "pm2 describe ${appName} || true", returnStatus: true) == 0
+
+                    if (isRunning) {
+                        echo 'Restarting application...'
+                        sh "pm2 restart ${appName} --update-env"
+                    } else {
+                        echo 'Starting application...'
+                        sh "pm2 start dist/server.js --name ${appName} --update-env"
+                    }
+                }
             }
         }
     }
