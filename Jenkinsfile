@@ -19,7 +19,7 @@ pipeline {
                 echo 'Deploying application...'
                 script {
                     def appName = "server" // Replace with your actual app name
-                    def isRunning = sh(script: "pm2 describe ${appName} || true", returnStatus: true) == 0
+                    def isRunning = sh(script: "pm2 list | grep ${appName}", returnStatus: true) == 0
 
                     if (isRunning) {
                         echo 'Restarting application...'
