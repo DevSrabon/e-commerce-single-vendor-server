@@ -82,7 +82,7 @@ class App {
   // Init routers
   private initRouters() {
     this.app.get("/", (_req: Request, res: Response) => {
-      res.send(`Server is running...🚀`);
+      res.send(`Server is running....🚀`);
     });
 
     // // Expose CSRF token for Postman
