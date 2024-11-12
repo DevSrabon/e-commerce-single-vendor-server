@@ -1,25 +1,72 @@
 import { Request } from "express";
+import CustomError from "../../../utils/lib/customError";
 import AdminAbstractServices from "../adminAbstracts/admin.abstract.service";
-import { IsingleAccountData } from "../utils/types/accountTypes";
 class AdminAccountsService extends AdminAbstractServices {
   constructor() {
     super();
   }
   // create a account
   public async createAccountService(req: Request) {
-    const res = await this.db("accounts").insert(req.body);
+    const body = req.body as {
+      ac_w_id: number;
+      ac_name: string;
+      ac_type: string;
+      ac_number: string;
+      ac_bank_name: string;
+      ac_bank_branch: string;
+      ac_details: string;
+      ac_opening_balance?: number;
+    };
+    const { au_id } = req.user;
+    return await this.db.transaction(async (trx) => {
+      const checkStore = await trx("warehouse")
+        .select("w_id")
+        .where("w_id", body.ac_w_id);
+      if (!checkStore.length) {
+        throw new CustomError("Store Not Found", 404, "Not Found");
+      }
+      if (body.ac_number) {
+        const checkAcc = await trx("accounts")
+          .select("ac_id")
+          .where("ac_number", body.ac_number);
 
-    if (res.length) {
-      return {
-        success: true,
-        message: "Account has been created",
-      };
-    } else {
-      return {
-        success: false,
-        message: "Cannot create account",
-      };
-    }
+        if (checkAcc.length) {
+          return {
+            success: false,
+            message: "Account no already exists",
+          };
+        }
+      }
+
+      const res = await trx("accounts").insert(req.body);
+
+      if (body.ac_opening_balance) {
+        await trx("account_ledger").insert({
+          account_id: res[0],
+          amount: body.ac_opening_balance,
+          created_by: au_id,
+          details: `Payment received from opening balance amount /- ${body.ac_opening_balance}`,
+          ledger_date: new Date(),
+          tr_type: "Opening Balance",
+          type: "IN",
+        });
+      }
+      if (res.length) {
+        await this.createAuditTrail({
+          at_admin_id: au_id,
+          at_details: "Account has been created with name " + body.ac_name,
+        });
+        return {
+          success: true,
+          message: "Account has been created",
+        };
+      } else {
+        return {
+          success: false,
+          message: "Cannot create account",
+        };
+      }
+    });
   }
   // get all account
   public async getAllaccountService(req: Request) {
@@ -47,7 +94,11 @@ class AdminAccountsService extends AdminAbstractServices {
         "w.w_id",
         "w.w_name",
         "ac.ac_type",
-        "ac.ac_bank_name"
+        "ac.ac_bank_name",
+        this.db.raw(
+          `(SELECT SUM(CASE WHEN al.type = ? THEN al.amount ELSE 0 END) - SUM(CASE WHEN al.type = ? THEN al.amount ELSE 0 END) as balance FROM account_ledger al where al.account_id = ac.ac_id) as balance`,
+          ["IN", "OUT"]
+        )
       )
       .join("warehouse AS w", "ac.ac_w_id", "w.w_id")
       .where(function () {
@@ -56,7 +107,7 @@ class AdminAccountsService extends AdminAbstractServices {
         }
       })
       .orderBy(order_by as string, according_order as string);
-
+    console.log({ data });
     return {
       success: true,
       data,
@@ -76,70 +127,25 @@ class AdminAccountsService extends AdminAbstractServices {
         "ac.ac_bank_branch",
         "ac.ac_details",
         "ac.ac_created_at",
+        this.db.raw(
+          `(SELECT SUM(CASE WHEN al.type = ? THEN al.amount ELSE 0 END) - SUM(CASE WHEN al.type = ? THEN al.amount ELSE 0 END) as balance FROM account_ledger al where al.account_id = ac.ac_id) as balance`,
+          ["IN", "OUT"]
+        ),
         "w.w_id",
         "w.w_name",
         "w.w_phone",
-        "w.w_email",
-        "at.ac_tr_id",
-        "at.ac_tr_type",
-        "at.ac_tr_amount",
-        "at.ac_tr_date"
+        "w.w_email"
       )
       .join("warehouse As w", "ac.ac_w_id", "w.w_id")
-      .leftJoin("ac_transaction AS at", "ac.ac_id", "at.ac_tr_ac_id")
       .where("ac.ac_id", id);
 
-    let data2: IsingleAccountData[] = [];
-
-    for (let i = 0; i < data.length; i++) {
-      let found = false;
-
-      for (let j = 0; j < data2.length; j++) {
-        if (data[i].ac_id === data2[j].ac_id) {
-          found = true;
-          data2[j].acc_transaction.push({
-            ac_tr_id: data[i].ac_tr_id,
-            ac_tr_type: data[i].ac_tr_type,
-            ac_tr_amount: data[i].ac_tr_amount,
-            ac_tr_details: data[i].ac_tr_details,
-            ac_tr_date: data[i].ac_tr_date,
-            ac_tr_remark: data[i].ac_tr_remark,
-          });
-        }
-      }
-
-      if (!found) {
-        data2.push({
-          ac_id: data[i].ac_id,
-          ac_name: data[i].ac_name,
-          ac_type: data[i].ac_type,
-          ac_number: data[i].ac_number,
-          ac_bank_name: data[i].ac_bank_name,
-          ac_bank_branch: data[i].ac_bank_branch,
-          ac_details: data[i].ac_details,
-          ac_created_at: data[i].ac_created_at,
-          w_id: data[i].w_id,
-          w_name: data[i].w_name,
-          w_phone: data[i].w_phone,
-          w_email: data[i].w_email,
-          acc_transaction: [
-            {
-              ac_tr_id: data[i].ac_tr_id,
-              ac_tr_type: data[i].ac_tr_type,
-              ac_tr_amount: data[i].ac_tr_amount,
-              ac_tr_details: data[i].ac_tr_details,
-              ac_tr_date: data[i].ac_tr_date,
-              ac_tr_remark: data[i].ac_tr_remark,
-            },
-          ],
-        });
-      }
-    }
-
     if (data.length) {
+      const accountLeger = await this.db("account_ledger")
+        .select("*")
+        .where({ account_id: id });
       return {
         success: true,
-        data: data2[0],
+        data: { ...data[0], accountLeger },
       };
     } else {
       return {
@@ -183,6 +189,7 @@ class AdminAccountsService extends AdminAbstractServices {
     const {
       ac_name,
       ac_tr_type,
+      account_id,
       from_date,
       to_date,
       limit,
@@ -195,7 +202,7 @@ class AdminAccountsService extends AdminAbstractServices {
 
     endDate.setDate(endDate.getDate() + 1);
 
-    const dtbs = this.db("ac_transaction AS at");
+    const dtbs = this.db("account_ledger AS al");
 
     if (limit) {
       dtbs.limit(parseInt(limit as string));
@@ -204,36 +211,61 @@ class AdminAccountsService extends AdminAbstractServices {
       dtbs.offset(parseInt(skip as string));
     }
 
-    console.log(from_date, endDate);
-
     const data = await dtbs
       .select(
         "ac.ac_id",
         "ac.ac_name",
         "w.w_id",
         "w.w_name",
-        "at.ac_tr_type",
-        "at.ac_tr_amount",
-        "at.ac_tr_date"
+        "al.type",
+        "al.voucher_no",
+        "al.details",
+        "al.amount",
+        "al.tr_type",
+        "al.ledger_date",
+        "al.payment_method"
       )
-      .join("accounts AS ac", "at.ac_tr_ac_id", "ac.ac_id")
+      .join("accounts AS ac", "al.account_id", "ac.ac_id")
       .join("warehouse AS w", "ac.ac_w_id", "w.w_id")
       .where(function () {
+        if (account_id) {
+          this.andWhere("ac.ac_id", account_id);
+        }
         if (ac_name) {
           this.where("ac.ac_name", "like", `%${ac_name}%`);
         }
         if (ac_tr_type) {
-          this.where("at.ac_tr_type", ac_tr_type);
+          this.where("al.type", ac_tr_type);
         }
         if (from_date && to_date) {
-          this.whereBetween("at.ac_tr_date", [from_date as string, endDate]);
+          this.whereBetween("al.ledger_date", [from_date as string, endDate]);
         }
       })
       .orderBy(order_by as string, according_order as string);
 
+    const total = await this.db("account_ledger as al")
+      .count("ac.ac_id as total")
+      .join("accounts AS ac", "al.account_id", "ac.ac_id")
+      .join("warehouse AS w", "ac.ac_w_id", "w.w_id")
+      .where(function () {
+        if (account_id) {
+          this.andWhere("ac.ac_id", account_id);
+        }
+        if (ac_name) {
+          this.where("ac.ac_name", "like", `%${ac_name}%`);
+        }
+        if (ac_tr_type) {
+          this.where("al.type", ac_tr_type);
+        }
+        if (from_date && to_date) {
+          this.whereBetween("al.ledger_date", [from_date as string, endDate]);
+        }
+      });
+
     return {
       success: true,
       data,
+      total: total[0].total,
     };
   }
 

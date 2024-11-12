@@ -1,4 +1,5 @@
 import { Request } from "express";
+import CustomError from "../../../utils/lib/customError";
 import Lib from "../../../utils/lib/lib";
 import CommonService from "../../common/commonService/common.service";
 import AdminAbstractServices from "../adminAbstracts/admin.abstract.service";
@@ -58,6 +59,31 @@ class AdminOfferService extends AdminAbstractServices {
             success: false,
             message: "Products doesn't exists!",
           };
+        }
+        const isExitsProduct = await trx("offer_products as op")
+          .select("op.id")
+          .join("offers as o", "o.id", "op.offer_id")
+          .whereIn(
+            "op.p_id",
+            productIds.map((p) => p.p_id)
+          )
+          .andWhere((qb) => {
+            qb.whereBetween("o.start_date", [rest.start_date, rest.end_date])
+              .orWhereBetween("o.end_date", [rest.start_date, rest.end_date])
+              .orWhere((innerQb) => {
+                innerQb
+                  .where("o.start_date", "<=", rest.start_date)
+                  .andWhere("o.end_date", ">=", rest.end_date);
+              });
+            qb.andWhere("o.status", 1);
+          });
+
+        if (isExitsProduct.length) {
+          throw new CustomError(
+            "Some product are already exists within previous offers",
+            412,
+            "Unprocessable Entity"
+          );
         }
         const offerProductsPayload = productIds.map((pId) => {
           return {
@@ -162,6 +188,7 @@ class AdminOfferService extends AdminAbstractServices {
       deleteProductIds,
       ...rest
     } = req.body;
+    console.log({ editProductIds: req.body });
     const files = (req.files as Express.Multer.File[]) || [];
     const parsedAddProductIds: IOfferProducts[] = addProductIds
       ? JSON.parse(addProductIds)
@@ -172,7 +199,9 @@ class AdminOfferService extends AdminAbstractServices {
     const parsedEditProductIds: IOfferProducts[] = editProductIds
       ? JSON.parse(editProductIds)
       : [];
-    const existingOffer = await this.db("offers").where({ offer_id }).first();
+    const existingOffer = await this.db("offers")
+      .where({ id: offer_id })
+      .first();
 
     if (!existingOffer) {
       return {
@@ -181,35 +210,47 @@ class AdminOfferService extends AdminAbstractServices {
       };
     }
 
-    // Check for duplicate offer names
-    const checkOffer = await this.db("offers")
-      .select("id")
-      .where(function () {
-        this.where({ offer_name_en }).orWhere({ offer_name_ar });
-      })
-      .andWhereNot({ offer_id });
+    if (offer_name_ar || offer_name_en) {
+      // Check for duplicate offer names
+      const checkOffer = await this.db("offers")
+        .select("id")
+        .where(function () {
+          this.where({ offer_name_en }).orWhere({ offer_name_ar });
+        });
 
-    if (checkOffer.length) {
-      return {
-        success: false,
-        message: "Offer name already exists",
-      };
+      if (checkOffer.length) {
+        return {
+          success: false,
+          message: "Offer name already exists",
+        };
+      }
+
+      const offer_slug = Lib.stringToSlug(offer_name_en);
+      if (offer_name_en) {
+        rest.offer_name_en = offer_name_en;
+      }
+      if (offer_name_ar) {
+        rest.offer_name_ar = offer_name_ar;
+      }
+
+      if (offer_slug) {
+        rest.offer_slug = offer_slug;
+      }
+
+      rest.offer_image = files.length
+        ? files[0].filename
+        : existingOffer.offer_image;
     }
 
-    const offer_slug = Lib.stringToSlug(offer_name_en);
-    rest.offer_image = files.length
-      ? files[0].filename
-      : existingOffer.offer_image;
-
     return await this.db.transaction(async (trx) => {
-      await trx("offers")
-        .where({ offer_id })
-        .update({
-          offer_name_en,
-          offer_name_ar,
-          offer_slug,
-          ...rest,
-        });
+      if (Object.keys(rest).length) {
+        console.log("=============");
+        await trx("offers")
+          .where({ id: offer_id })
+          .update({
+            ...rest,
+          });
+      }
 
       if (parsedAddProductIds.length) {
         const checkProducts = await trx("product")
@@ -265,6 +306,7 @@ class AdminOfferService extends AdminAbstractServices {
           if (!getOfferProduct.length) {
             throw new Error("Offer product doesn't exists!");
           }
+          console.log("=============");
           await trx("offer_products")
             .where({ p_id: pId.p_id, offer_id, id: pId.id })
             .update({

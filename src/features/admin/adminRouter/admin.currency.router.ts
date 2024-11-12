@@ -26,8 +26,8 @@ class AdminCurrencyRouter extends AdminAbstractRouter {
         const eurToAed = currency.data.rates.AED;
         const usdToEur = currency.data.rates.USD;
         const gbpToEur = currency.data.rates.GBP;
-        const usd = parseFloat((usdToEur / eurToAed).toFixed(2));
-        const gbp = parseFloat((gbpToEur / eurToAed).toFixed(2));
+        const usd = parseFloat((usdToEur / eurToAed).toFixed(3));
+        const gbp = parseFloat((gbpToEur / eurToAed).toFixed(3));
         console.log({ usd, gbp });
         await db("currency")
           .update({

@@ -1,6 +1,7 @@
 import { Worker } from "bullmq";
 
 import { db } from "../../app/database";
+import { REDIS_URL } from "../miscellaneous/constants";
 import Lib from "./lib"; // adjust the path to your lib setup
 
 const emailWorker = new Worker(
@@ -29,39 +30,7 @@ const emailWorker = new Worker(
     }
   },
   {
-    connection: {
-      host: "127.0.0.1",
-      port: 6379,
-    },
+    connection: REDIS_URL,
     concurrency: 1,
-  }
-);
-
-// export const cancelQueue = new Queue("cancelOrderQueue");
-
-// Function to cancel pending orders
-const cancelPendingOrders = async (orderId: number) => {
-  console.log(`Canceling pending order for orderId: ${orderId}`);
-
-  const canceledOrders = await db("e_order")
-    .where("id", orderId)
-    .andWhere("status", "pending")
-    .andWhere("ADDTIME(created_at, '1:0:0') < NOW()")
-    .update({ status: "cancelled" });
-
-  console.log(`Canceled ${canceledOrders} pending orders.`);
-};
-
-// Worker to handle cancellation jobs
-const cancelWorker = new Worker(
-  "cancelOrderQueue",
-  async (job) => {
-    await cancelPendingOrders(job.data.orderId);
-  },
-  {
-    connection: {
-      host: "127.0.0.1",
-      port: 6379,
-    },
   }
 );

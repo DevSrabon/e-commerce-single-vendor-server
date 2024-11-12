@@ -1,6 +1,7 @@
 import { Queue } from "bullmq";
 import { Request } from "express";
 import config from "../../../utils/config/config";
+import CustomError from "../../../utils/lib/customError";
 import { ROOT_FOLDER } from "../../../utils/miscellaneous/constants";
 import EcommAbstractServices from "../ecommAbstracts/ecomm.abstract.service";
 import EcommProductService from "./ecomm.product.service";
@@ -38,16 +39,10 @@ class EcommOrderService extends EcommAbstractServices {
   // customer place order service
   public async ecommPlaceOrderService(req: Request) {
     const { ec_id } = req.customer;
-    const {
-      address_id,
-      products,
-      coupon,
-      currency,
-      delivery_charge = 0,
-    } = req.body;
+    const { address_id, products, coupon, currency } = req.body;
     const pId: number[] = products.map((item: IOrderProduct) => item.id);
     const checkAddress = await this.db("ec_shipping_address as ecsa")
-      .select("ecsa.*", "c.c_name_en")
+      .select("ecsa.*", "c.c_name_en", "c.c_short_name")
       .where("ec_id", ec_id)
       .join("country as c", "ecsa.country_id", "c.c_id")
       .andWhere("id", address_id);
@@ -100,11 +95,18 @@ class EcommOrderService extends EcommAbstractServices {
       };
     }
     let grand_total = total;
+    let deliveryCharge = 0;
+    if (
+      checkAddress[0].c_short_name !== "AE" ||
+      checkAddress[0].c_short_name !== "OM"
+    ) {
+    }
+
     let discount = 0;
 
-    if (delivery_charge) {
-      grand_total += parseInt(delivery_charge);
-    }
+    // if (delivery_charge) {
+    //   grand_total += parseInt(delivery_charge);
+    // }
     if (coupon) {
       const getCoupon = await this.db("coupons")
         .select("discount", "discount_type")
@@ -171,7 +173,7 @@ class EcommOrderService extends EcommAbstractServices {
         }),
         currency,
         discount,
-        deliveryCharge: 0,
+        deliveryCharge,
         taxAmount: 0,
         orderId: order[0]?.toString(),
         customer: {
@@ -237,10 +239,7 @@ class EcommOrderService extends EcommAbstractServices {
       //   // }
       // );
       if (!redirect_url) {
-        return {
-          success: false,
-          message: "Something went wrong",
-        };
+        throw new CustomError("Payment Failure", 412, "Unprocessable Entity");
       }
 
       return {
@@ -278,7 +277,7 @@ class EcommOrderService extends EcommAbstractServices {
   }
 
   // get single order service
-  public async getSingleOrderSirvice(req: Request) {
+  public async getSingleOrderService(req: Request) {
     const { ec_id } = req.customer;
     const { id } = req.params;
 

@@ -152,7 +152,7 @@ class CommonService extends CommonAbstractServices {
     const check = await this.db(obj.table)
       .select("*")
       .where(obj.field, obj.value);
-
+    console.log({ check });
     if (check.length) {
       return true;
     } else {

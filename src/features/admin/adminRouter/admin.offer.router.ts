@@ -31,7 +31,11 @@ class AdminOfferRouter extends AdminAbstractRouter {
         this.commonValidator.commonSingleIdInParamsValidator(),
         this.controller.getSingleOffer
       )
-      .patch(this.validator.updateOfferValidator(), this.controller.updateOffer)
+      .patch(
+        this.validator.updateOfferValidator(),
+        this.uploader.storageUploadRaw("offers"),
+        this.controller.updateOffer
+      )
       .delete(
         this.commonValidator.commonSingleIdInParamsValidator(),
         this.controller.deleteOffer

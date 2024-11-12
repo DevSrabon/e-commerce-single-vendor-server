@@ -1,8 +1,9 @@
 import { Queue } from "bullmq";
+import { REDIS_URL } from "../miscellaneous/constants";
 
 // Create an email queue
 const emailQueue = new Queue("emailQueue", {
-  connection: { host: "127.0.0.1", port: 6379 },
+  connection: REDIS_URL,
 });
 
 // Function to add email jobs to the queue

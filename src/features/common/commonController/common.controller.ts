@@ -44,8 +44,7 @@ class CommonController extends CommonAbstractController {
           field,
           value: email,
         });
-
-        if (!checkUser) {
+        if (checkUser) {
           data = await this.commonService.sendOtpToEmailService(obj);
         } else {
           data = {

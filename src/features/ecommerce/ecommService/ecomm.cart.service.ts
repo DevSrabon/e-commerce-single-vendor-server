@@ -1,0 +1,188 @@
+import { Request } from "express";
+import CustomError from "../../../utils/lib/customError";
+import EcommAbstractServices from "../ecommAbstracts/ecomm.abstract.service";
+
+class EcommCartService extends EcommAbstractServices {
+  constructor() {
+    super();
+  }
+
+  public async addToCart(req: Request) {
+    return await this.db.transaction(async (trx) => {
+      const { ec_id } = req.customer;
+      const body = req.body as {
+        p_id: number;
+        v_id: number;
+        color_id: number;
+        size_id: number;
+        quantity: number;
+        type: "cart" | "favourite";
+      };
+
+      const { color_id, p_id, quantity, size_id, type, v_id } = body;
+
+      const checkProducts = await trx("product")
+        .select("p_id")
+        .where({ p_id })
+        .first();
+      if (!checkProducts) {
+        throw new CustomError("Product not found", 404, "Not Found");
+      }
+
+      const checkColor = await trx("p_color")
+        .select("id")
+        .where("color_id", color_id)
+        .first();
+      if (!checkColor) {
+        throw new CustomError("Color not found", 404, "Not Found");
+      }
+      const checkVariants = await trx("variant_product")
+        .select("id")
+        .where("id", v_id)
+        .andWhere("p_id", p_id)
+        .first();
+
+      if (!checkVariants) {
+        throw new CustomError("Variant not found", 404, "Not Found");
+      }
+
+      const checkSize = await trx("p_size")
+        .where({ size_id })
+        .andWhere({ p_id })
+        .first();
+      if (!checkSize) {
+        throw new CustomError("Size not found", 404, "Not Found");
+      }
+      const checkCart = await trx("cart_items")
+        .select("id")
+        .andWhere({ ec_id })
+        .andWhere({ p_id })
+        .andWhere({ v_id })
+        .andWhere({ color_id })
+        .andWhere({ size_id })
+        .andWhere({ type })
+        .first();
+      if (checkCart) {
+        await trx("cart_items")
+          .where("id", checkCart.id)
+          .increment("quantity", quantity);
+
+        return {
+          success: true,
+          message: `Successfully add to ${body.type}`,
+        };
+      } else {
+        await trx("cart_items").insert({
+          ec_id,
+          p_id,
+          v_id,
+          color_id,
+          size_id,
+          quantity,
+          type,
+        });
+
+        return {
+          success: true,
+          message: `Successfully add to ${body.type}`,
+        };
+      }
+    });
+  }
+
+  //   Get all Cart Items
+  public async getAllCarts(req: Request) {
+    const { ec_id } = req.customer;
+    const { limit, skip } = req.query;
+    const date = new Date().toISOString().split("T")[0]; // Format date to 'YYYY-MM-DD'
+
+    const data = await this.db("cart_items as ci")
+      .select(
+        "p.p_id",
+        "p.sku",
+        "p.p_name_en",
+        "p.p_name_ar",
+        "p.p_slug",
+        // "p.p_tags",
+        // "p.p_details_en",
+        // "p.p_details_ar",
+        // "p.qr_code",
+        // "p.barcode",
+        // "p.barcode",
+        // "p.stock_alert",
+        // "p.is_featured",
+        // "p.p_status",
+        // "p.p_created_at",
+        "ci.quantity",
+        "c.color_en",
+        "c.color_ar",
+        "c.code",
+        "s.size",
+        "fab.name_en as fabric_name_en",
+        "fab.name_ar as fabric_name_ar",
+        this.db.raw(`
+        CASE
+          WHEN (offer_details.offer_id IS NOT NULL) THEN offer_details.op_discount
+          ELSE vp.discount
+        END AS discount
+      `),
+        this.db.raw(`
+        CASE
+          WHEN (offer_details.offer_id IS NOT NULL) THEN offer_details.op_discount_type
+          ELSE vp.discount_type
+        END as discount_type
+      `),
+        this.db.raw(`
+        FORMAT(
+          CASE
+            WHEN (offer_details.offer_id IS NOT NULL) THEN
+              CASE
+                WHEN offer_details.op_discount_type = 'percentage' THEN (vp.price - (vp.price * (offer_details.op_discount / 100)))
+                WHEN offer_details.op_discount_type = 'fixed' THEN (vp.price - offer_details.op_discount)
+                ELSE vp.price
+              END
+            ELSE
+              CASE
+                WHEN vp.discount_type = 'percentage' THEN (vp.price - (vp.price * (vp.discount / 100)))
+                WHEN vp.discount_type = 'fixed' THEN (vp.price - vp.discount)
+                ELSE vp.price
+              END
+          END, 2
+        ) AS special_price
+      `)
+      )
+      .join("product as p", "p.p_id", "ci.p_id")
+      .join("color as c", "c.id", "ci.color_id")
+      .join("size as s", "s.id", "ci.size_id")
+      .join("variant_product as vp", "vp.id", "ci.v_id")
+      .leftJoin("fabric as fab", "fab.id", "vp.fabric_id")
+      .leftJoin(
+        this.db.raw(`
+        (
+          SELECT op.p_id, op.op_discount, op.op_discount_type, op.offer_id
+          FROM offer_products AS op
+          LEFT JOIN offers AS offers ON offers.id = op.offer_id
+          WHERE offers.status = 1
+          AND CURDATE() BETWEEN offers.start_date AND offers.end_date
+        ) AS offer_details
+      `),
+        "offer_details.p_id",
+        "ci.p_id"
+      )
+      .where({ ec_id })
+      .limit(parseInt((limit as string) || "100"))
+      .offset(parseInt((skip as string) || "0"));
+
+    const total = await this.db("cart_items")
+      .count("id as total")
+      .where({ ec_id });
+
+    return {
+      success: true,
+      message: "Data successfully fetched",
+      total: total[0].total,
+      data,
+    };
+  }
+}
+export default EcommCartService;

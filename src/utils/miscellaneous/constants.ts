@@ -67,4 +67,6 @@ export const DATA_SKIP = 0;
 
 export const ROOT_FOLDER = "memart";
 
-export const CLIENT_URL = "https://memart.online";
+export const CLIENT_URL = "https://alsaba.com";
+
+export const REDIS_URL = { host: "127.0.0.1", port: 6379 };

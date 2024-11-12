@@ -31,7 +31,7 @@ class EcommOrderController extends EcommAbstractController {
   // get single order controller
   public geSingleOrderService = this.asyncWrapper.wrap(
     async (req: Request, res: Response) => {
-      const data = await this.ecommOrderService.getSingleOrderSirvice(req);
+      const data = await this.ecommOrderService.getSingleOrderService(req);
       if (data.success) {
         res.status(200).json(data);
       } else {

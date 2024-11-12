@@ -188,6 +188,7 @@ class AdminInputValidator {
       body("ac_bank_name", "Provide bank name").isString().notEmpty(),
       body("ac_bank_branch", "Provide branch name").isString().notEmpty(),
       body("ac_details", "Provide account details").isString().optional(),
+      body("ac_opening_balance", "Provide valid opening balance").isInt(),
     ];
   }
 
