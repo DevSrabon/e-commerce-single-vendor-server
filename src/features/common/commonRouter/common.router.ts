@@ -25,6 +25,10 @@ class CommonRouter extends CommonAbstractRouter {
     );
 
     this.router.get("/currency", this.CommonController.getAllCurrencies);
+    this.router.get(
+      "/delivery-charge",
+      this.CommonController.getDeliveryCharge
+    );
   }
 }
 export default CommonRouter;

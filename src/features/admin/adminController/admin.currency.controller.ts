@@ -67,6 +67,30 @@ class AdminCurrencyController extends AdminAbstractController {
       }
     }
   );
+
+  // Get Delivery
+  public getDeliveryCharge = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.service.getDeliveryCharge(req);
+      if (data.success) {
+        res.status(200).json(data);
+      } else {
+        this.error(data.message, 404);
+      }
+    }
+  );
+
+  // update Delivery
+  public updateDeliveryCharge = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.service.updateDeliveryCharge(req);
+      if (data.success) {
+        res.status(200).json(data);
+      } else {
+        this.error(data.message, 404);
+      }
+    }
+  );
 }
 
 export default AdminCurrencyController;

@@ -1,5 +1,7 @@
 import { Request } from "express";
+import { Knex } from "knex";
 import { Stripe } from "stripe";
+import { io } from "../../../app/socket";
 import config from "../../../utils/config/config";
 import Lib from "../../../utils/lib/lib";
 import { IEcommCustomer } from "../../ecommerce/ecommUtils/ecommTypes/ecommCustomerTypes";
@@ -215,6 +217,16 @@ class CommonService extends CommonAbstractServices {
     };
   }
 
+  // Delivery Charge
+  public async getDeliveryCharge(req: Request) {
+    const data = await this.db("delivery_charge").select("*").first();
+    return {
+      success: true,
+      message: "Data fetched successfully!",
+      data,
+    };
+  }
+
   // make stripe payment
   public async makeStripePayment(payload: {
     items: {
@@ -223,7 +235,7 @@ class CommonService extends CommonAbstractServices {
       currency: string;
       quantity: number;
       description?: string;
-      image?: string;
+      image?: string[];
     }[];
     orderId: string;
     discount?: number;
@@ -236,6 +248,7 @@ class CommonService extends CommonAbstractServices {
       address: string;
     };
   }) {
+    console.log({ payload: JSON.stringify(payload) });
     const stripe = new Stripe(config.STRIPE_SECRET_KEY);
 
     let coupon;
@@ -277,13 +290,14 @@ class CommonService extends CommonAbstractServices {
         currency: item.currency,
         product_data: {
           name: item.name,
-          images: item.image ? [item.image] : [],
+          images:
+            // item.image && Array.isArray(item.image) ? item.image : undefined, // Ensure images array is passed
+            [
+              "https://m360ict-ecommerce.s3.ap-south-1.amazonaws.com/memart/product_files/1730567278676-675357971.png",
+            ],
           description: item.description || undefined,
         },
-        unit_amount:
-          payload.currency.toLowerCase() === "aed"
-            ? item.amount
-            : item.amount * 100,
+        unit_amount: item.amount * 100,
       },
       quantity: item.quantity,
     }));
@@ -339,6 +353,70 @@ class CommonService extends CommonAbstractServices {
     return {
       redirect_url: session.url,
     };
+  }
+
+  // Update SocketId
+  // Update SocketId
+  public async updateSocketId({
+    id,
+    type,
+    socketId,
+  }: {
+    id: number;
+    type: "customer" | "admin";
+    socketId: string;
+  }) {
+    try {
+      switch (type) {
+        case "customer":
+          await this.db("e_customer")
+            .update({ socket_id: socketId })
+            .where({ ec_id: id });
+          break;
+        case "admin":
+          await this.db("admin_user")
+            .update({ socket_id: socketId })
+            .where({ au_id: id });
+          break;
+        default:
+          throw new Error("Invalid user type");
+      }
+    } catch (error) {
+      console.error("Error updating socket ID:", error);
+      throw new Error("Failed to update socket ID");
+    }
+  }
+
+  // socket
+  private async emitNotification(data: {
+    customer_id: number;
+    related_id: number;
+    message: string;
+    file?: string;
+    read_status?: number;
+    created_at?: string;
+    type: string;
+  }) {
+    data.read_status = 0;
+    data.created_at = new Date().toISOString();
+    io.emit("new_notification", data);
+  }
+
+  // Create Notification
+  public async createNotification(
+    trx: Knex.Transaction,
+    type: "admin" | "customer",
+    payload: {
+      customer_id: number;
+      related_id: number;
+      message: string;
+      type: string;
+    }
+  ) {
+    const table =
+      type === "admin" ? "admin_notification" : "customer_notification";
+    await trx(table).insert(payload);
+    await this.emitNotification(payload);
   }
 }
 

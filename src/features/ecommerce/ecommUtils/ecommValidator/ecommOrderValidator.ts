@@ -5,13 +5,14 @@ class EcommOrderValidator {
   public ecommPlaceOrderValidator() {
     return [
       body("address_id", "Provide valid shipping address id").exists().isInt(),
-      body("delivery_charge", "Provide valid delivery charge of this order")
-        .exists()
-        .isInt(),
+      // body("delivery_charge", "Provide valid delivery charge of this order")
+      //   .exists()
+      //   .isInt(),
       body("products", "Provide valid products array")
         .exists()
         .isArray({ min: 1 }),
       body("products.*.id", "Provide valid product id").exists().isInt(),
+      body("products.*.cart_id").optional().isInt(),
       body("products.*.quantity", "Provide valid product quantity")
         .exists()
         .isInt(),

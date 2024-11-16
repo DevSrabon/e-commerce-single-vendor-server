@@ -18,6 +18,7 @@ import AdminCurrencyRouter from "./adminRouter/admin.currency.router";
 import AdminDashboardRouter from "./adminRouter/admin.dashboard.router";
 import AdminInventoryRouter from "./adminRouter/admin.inventory.router";
 import AdminMailRouter from "./adminRouter/admin.mail.router";
+import AdminNotificationRouter from "./adminRouter/admin.notification.router";
 import AdminOfferRouter from "./adminRouter/admin.offer.router";
 import AdminProfileRouter from "./adminRouter/admin.profile.router";
 import AdminReportRouter from "./adminRouter/admin.report.router";
@@ -46,6 +47,7 @@ class AdminRouter extends AdminAbstractRouter {
   private adminCurrency = new AdminCurrencyRouter();
   private adminDashboardRouter = new AdminDashboardRouter();
   private adminCoupon = new AdminCouponRouter();
+  private adminNotification = new AdminNotificationRouter();
   constructor() {
     super();
     this.callRouter();
@@ -59,7 +61,6 @@ class AdminRouter extends AdminAbstractRouter {
     this.AdminRouter.use("/profile", this.adminProfileRouter.router);
     this.AdminRouter.use("/products", this.adminProductRouter.router);
     this.AdminRouter.use("/address", this.addressRouter.router);
-    // this.AdminRouter.use('/attribute', this.adminAttributeRouter.router);
     this.AdminRouter.use("/attribute", this.adminAttributeRouter.router);
     this.AdminRouter.use("/staff", this.adminStaffRouter.router);
     this.AdminRouter.use("/store", this.adminWareHouseRouter.router);
@@ -77,6 +78,7 @@ class AdminRouter extends AdminAbstractRouter {
     this.AdminRouter.use("/currency", this.adminCurrency.router);
     this.AdminRouter.use("/dashboard", this.adminDashboardRouter.router);
     this.AdminRouter.use("/coupon", this.adminCoupon.router);
+    this.AdminRouter.use("/notification", this.adminNotification.router);
   }
 }
 export default AdminRouter;

@@ -3,6 +3,7 @@ import EcommAuthRouter from "./ecommRouter/ecomm.auth.router";
 import EcommCartRouter from "./ecommRouter/ecomm.cart.router";
 import EcommCategoryRouter from "./ecommRouter/ecomm.category.router";
 import EcommCustomerRouter from "./ecommRouter/ecomm.customer.router";
+import EcommNotificationRouter from "./ecommRouter/ecomm.notification.router";
 import EcommOrderRouter from "./ecommRouter/ecomm.order.router";
 import EcommProductRouter from "./ecommRouter/ecomm.product.router";
 import EcommQnaRouter from "./ecommRouter/ecomm.qna.router";
@@ -18,6 +19,7 @@ class EcommRouter {
   private reviewRouter = new EcommReviewRouter();
   private categoryRouter = new EcommCategoryRouter();
   private cartRouter = new EcommCartRouter();
+  private ecommNotification = new EcommNotificationRouter();
   constructor() {
     this.callRouter();
   }
@@ -44,7 +46,11 @@ class EcommRouter {
     // ecommerce category router
     this.EcommRouter.use("/categories", this.categoryRouter.router);
 
+    // Carts Router
     this.EcommRouter.use("/cart", this.cartRouter.router);
+
+    // Notification Router
+    this.EcommRouter.use("/notification", this.ecommNotification.router);
   }
 }
 export default EcommRouter;

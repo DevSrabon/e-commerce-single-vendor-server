@@ -111,6 +111,16 @@ class CommonController extends CommonAbstractController {
       }
     }
   );
+  public getDeliveryCharge = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.commonService.getDeliveryCharge(req);
+      if (data.success) {
+        res.status(200).json(data);
+      } else {
+        this.error(data.message, 400);
+      }
+    }
+  );
 }
 
 export default CommonController;

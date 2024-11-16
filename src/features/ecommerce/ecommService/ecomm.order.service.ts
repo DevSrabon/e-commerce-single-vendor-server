@@ -13,6 +13,7 @@ export interface IOrderProduct {
   size_id: number;
   price: number;
   id: number;
+  cart_id?: number;
   v_id?: number;
   quantity: number;
 }
@@ -24,7 +25,7 @@ interface IOrderProductDetails {
   price: number;
   quantity: number;
   v_id: number;
-  p_image: string;
+  p_image: string[];
   size_id: number;
   p_color_id: number;
 }
@@ -38,9 +39,27 @@ class EcommOrderService extends EcommAbstractServices {
 
   // customer place order service
   public async ecommPlaceOrderService(req: Request) {
-    const { ec_id } = req.customer;
-    const { address_id, products, coupon, currency } = req.body;
-    const pId: number[] = products.map((item: IOrderProduct) => item.id);
+    const { ec_id, ec_name } = req.customer;
+    const { address_id, products, coupon } = req.body;
+    const getCurrency = await this.db("e_customer")
+      .select("currency")
+      .where({ ec_id })
+      .first();
+    const currency = getCurrency.currency;
+    if (!currency) {
+      throw new CustomError(
+        "Please Select a currency",
+        412,
+        "Unprocessable Entity"
+      );
+    }
+    const cartIds: number[] = [];
+    const pId: number[] = products.map((item: IOrderProduct) => {
+      if (item.cart_id) {
+        cartIds.push(item.cart_id);
+      }
+      return item.id;
+    });
     const checkAddress = await this.db("ec_shipping_address as ecsa")
       .select("ecsa.*", "c.c_name_en", "c.c_short_name")
       .where("ec_id", ec_id)
@@ -48,19 +67,17 @@ class EcommOrderService extends EcommAbstractServices {
       .andWhere("id", address_id);
 
     if (!checkAddress.length) {
-      return {
-        success: false,
-        message: "Address not found",
-      };
+      throw new CustomError("Adress Not Found!", 404, "Not Found");
     }
 
     const orderProduct = await this.ecommProductService.getProductForOrder(pId);
 
     if (pId.length !== orderProduct.length) {
-      return {
-        success: false,
-        message: "Some of product are not available of this order",
-      };
+      throw new CustomError(
+        "Some of product are not available of this order",
+        412,
+        "Unprocessable Entity"
+      );
     }
 
     let total = 0;
@@ -81,7 +98,10 @@ class EcommOrderService extends EcommAbstractServices {
           ep_name_ar: currProduct.p_name_ar,
           price: item.price,
           quantity: item.quantity,
-          p_image: `${config.AWS_S3_BASE_URL}${ROOT_FOLDER}/${orderProduct[i].p_images[0].image}`,
+          p_image: orderProduct[i].p_images.map(
+            (img: { image: string }) =>
+              `${config.AWS_S3_BASE_URL}${ROOT_FOLDER}/${img.image}`
+          ),
           v_id: item.v_id || null,
           p_color_id: item.p_color_id || null,
           size_id: item.size_id || null,
@@ -89,10 +109,7 @@ class EcommOrderService extends EcommAbstractServices {
       }
     );
     if (stockOut) {
-      return {
-        success: false,
-        message: stockOut,
-      };
+      throw new CustomError("Stock Out!", 412, "Unprocessable Entity");
     }
     let grand_total = total;
     let deliveryCharge = 0;
@@ -100,23 +117,30 @@ class EcommOrderService extends EcommAbstractServices {
       checkAddress[0].c_short_name !== "AE" ||
       checkAddress[0].c_short_name !== "OM"
     ) {
+      const getDeliveryCharge = await this.db("delivery_charge")
+        .select("usd", "gbp")
+        .first();
+      if (currency.toLowerCase() !== "aed") {
+        deliveryCharge = parseInt(getDeliveryCharge[currency.toLowerCase()]);
+      }
     }
 
     let discount = 0;
 
-    // if (delivery_charge) {
-    //   grand_total += parseInt(delivery_charge);
-    // }
+    if (deliveryCharge) {
+      grand_total += deliveryCharge;
+    }
     if (coupon) {
       const getCoupon = await this.db("coupons")
         .select("discount", "discount_type")
         .where("id", coupon)
         .first();
       if (!getCoupon) {
-        return {
-          success: false,
-          message: "Invalid coupon code",
-        };
+        throw new CustomError(
+          "Invalid coupon code",
+          412,
+          "Unprocessable Entity"
+        );
       }
 
       switch (getCoupon.discount_type) {
@@ -161,6 +185,7 @@ class EcommOrderService extends EcommAbstractServices {
 
       await trx("e_order_details").insert(currProductDetails);
       const address = `${checkAddress[0].apt}, ${checkAddress[0].street_address}, ${checkAddress[0].city}, ${checkAddress[0].state}, ${checkAddress[0].c_name_ar}, ${checkAddress[0].zip_code}`;
+
       const { redirect_url } = await this.commonService.makeStripePayment({
         items: productDetails.map((item) => {
           return {
@@ -241,7 +266,16 @@ class EcommOrderService extends EcommAbstractServices {
       if (!redirect_url) {
         throw new CustomError("Payment Failure", 412, "Unprocessable Entity");
       }
+      if (cartIds.length) {
+        await trx("cart_items").del().whereIn("id", cartIds);
+      }
 
+      await this.commonService.createNotification(trx, "admin", {
+        customer_id: 1,
+        message: `An Order has been created by ${ec_name} with total amount /- ${grand_total}`,
+        related_id: order[0],
+        type: "order",
+      });
       return {
         success: true,
         message: "Order placed!",
@@ -250,11 +284,6 @@ class EcommOrderService extends EcommAbstractServices {
         },
       };
     });
-  }
-
-  public async directOrder(req: Request) {
-    const { ec_id } = req.customer;
-    const { order_id } = req.body;
   }
 
   // get order of customer service

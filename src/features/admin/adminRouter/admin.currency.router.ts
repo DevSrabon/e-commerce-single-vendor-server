@@ -55,6 +55,11 @@ class AdminCurrencyRouter extends AdminAbstractRouter {
       );
 
     this.router
+      .route("/delivery-charge")
+      .get(this.controller.getDeliveryCharge)
+      .patch(this.controller.updateDeliveryCharge);
+
+    this.router
       .route("/:id")
       .get(
         this.commonValidator.singleParamInputValidator(),

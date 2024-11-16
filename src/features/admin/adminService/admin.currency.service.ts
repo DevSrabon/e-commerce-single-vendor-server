@@ -83,6 +83,25 @@ class AdminCurrencyService extends AdminAbstractServices {
       message: "Currency deleted successfully",
     };
   }
+
+  // Get Delivery Charge
+  public async getDeliveryCharge(req: Request) {
+    const data = await this.db("delivery_charge").select("*").first();
+    return {
+      success: true,
+      message: "Data fetched successfully!",
+      data,
+    };
+  }
+
+  // Update Delivery Charge
+  public async updateDeliveryCharge(req: Request) {
+    await this.db("delivery_charge").update(req.body);
+    return {
+      success: true,
+      message: "Updated successfully",
+    };
+  }
 }
 
 export default AdminCurrencyService;

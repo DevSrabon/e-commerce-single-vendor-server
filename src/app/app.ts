@@ -3,24 +3,31 @@ import cors from "cors";
 import express, { Application, NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
+import { Server } from "http";
 import morgan from "morgan";
+import CommonService from "../features/common/commonService/common.service";
 import ErrorHandler from "../features/common/middlewares/errorHandler/errorHandler";
 import CustomError from "../utils/lib/customError";
 import { origin } from "../utils/miscellaneous/constants";
+import Webhooks from "../webhooks/webhook";
 import RootRouter from "./router";
-
+import { io, SocketServer } from "./socket";
 class App {
   public app: Application;
   private port: number;
+  private server: Server;
   private origin: string[] = origin;
-
+  private webhook = new Webhooks();
+  private commonService = new CommonService();
   constructor(port: number) {
     this.app = express();
     this.port = port;
+    this.server = SocketServer(this.app);
     this.initMiddlewares();
     this.initRouters();
     this.notFoundRouter();
     this.errorHandle();
+    this.socket();
   }
 
   // Start server
@@ -78,6 +85,36 @@ class App {
       })
     );
   }
+  // socket connecton
+  private socket() {
+    io.on("connection", async (socket) => {
+      let users: any = {};
+      const { id, type } = socket.handshake.auth;
+      console.log(`⚡: ${socket.id} user just connected!`);
+
+      socket.on("read_message", async (event) => {
+        console.log({ event });
+      });
+
+      socket.on("disconnect", async (event) => {
+        socket.disconnect();
+      });
+
+      if (type === "customer" && id) {
+        await this.commonService.updateSocketId({
+          id,
+          socketId: socket.id,
+          type: "customer",
+        });
+      } else if (type === "admin_user" && id) {
+        await this.commonService.updateSocketId({
+          id,
+          socketId: socket.id,
+          type: "admin",
+        });
+      }
+    });
+  }
 
   // Init routers
   private initRouters() {
@@ -92,6 +129,7 @@ class App {
 
     // Use the API routes
     this.app.use("/api/v1", new RootRouter().v1Router);
+    this.app.post("/webhook", this.webhook.stripeWebhook);
   }
 
   // Handle 404 errors for unknown routes

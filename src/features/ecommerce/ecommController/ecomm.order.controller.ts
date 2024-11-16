@@ -12,8 +12,9 @@ class EcommOrderController extends EcommAbstractController {
   public placeOrderController = this.asyncWrapper.wrap(
     async (req: Request, res: Response) => {
       const data = await this.ecommOrderService.ecommPlaceOrderService(req);
-      if (data.success && "redirect_url" in data) {
-        res.redirect(data.redirect_url as string);
+      if (data.success && data?.data?.redirect_url) {
+        res.status(201).json(data);
+        // res.status(302).redirect(data.data.redirect_url);
       } else {
         res.status(400).json(data);
       }

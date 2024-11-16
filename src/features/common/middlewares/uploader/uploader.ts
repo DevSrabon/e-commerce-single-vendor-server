@@ -38,6 +38,7 @@ class Uploader extends CommonAbstractStorage {
         storage: multerS3({
           acl: "public-read",
           s3: this.s3Client,
+          contentType: multerS3.AUTO_CONTENT_TYPE,
           bucket: config.AWS_S3_BUCKET,
           metadata: function (_req, file, cb) {
             cb(null, { fieldName: file.fieldname });
