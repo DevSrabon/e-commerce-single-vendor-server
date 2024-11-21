@@ -1,8 +1,14 @@
 import { Request } from "express";
+import CustomError from "../../../utils/lib/customError";
+import Lib from "../../../utils/lib/lib";
+import { createOrderStatusEmail } from "../../../utils/template/orderConfirmationTemplate";
+import { IOrder } from "../../../utils/types/commonTypes";
+import CommonService from "../../common/commonService/common.service";
 import AdminAbstractServices from "../adminAbstracts/admin.abstract.service";
-import { IorderUpdateBody, customRequest } from "../utils/types/combinedTypes";
+import { IOrderUpdateBody, customRequest } from "../utils/types/combinedTypes";
 
 class AdminEcommerceOrderService extends AdminAbstractServices {
+  private commonService = new CommonService();
   constructor() {
     super();
   }
@@ -187,30 +193,26 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
 
   // update single ecommerce order
   public async updateSingleEorderPaymentService(
-    req: customRequest<IorderUpdateBody>
+    req: customRequest<IOrderUpdateBody>
   ) {
     return await this.db.transaction(async (trx) => {
       const { payment_status } = req.body;
       const { id } = req.params;
 
-      const checkOrder = await trx("e_order")
-        .select("id")
-        .andWhereNot({ status: "delivered" })
-        .where({ id: id });
+      const checkOrder: IOrder = await trx("order_view")
+        .select("*")
+        .where({ id })
+        .first();
 
-      if (checkOrder.length) {
-        return {
-          success: false,
-          message: "You cannot payment cause, this order has not delivered",
-        };
+      if (!checkOrder) {
+        throw new CustomError(
+          "You cannot payment cause, this order has not delivered",
+          412,
+          "Unprocessable Entity"
+        );
       }
 
-      const checkPayment = await trx("e_order")
-        .select("id")
-        .andWhere({ id: id })
-        .andWhere({ payment_status: 1 });
-
-      if (checkPayment.length) {
+      if (checkOrder.payment_status === 1) {
         return {
           success: false,
           message: "Already payment has been done",
@@ -221,6 +223,32 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
         success: false,
         message: "",
       };
+
+      const paymentStatus = payment_status === 1 ? "completed" : "failed";
+      const notifyAndEmail = async (message: string) => {
+        // Notify Customer
+        await this.commonService.createNotification(trx, "customer", {
+          customer_id: req.customer.ec_id,
+          related_id: Number(id),
+          message: `Your order has been ${message}`,
+          type: "order_update",
+        });
+        // // Send Email to Customer
+        await Lib.sendEmail(
+          req.customer.ec_email,
+          `Your Order #${checkOrder.order_no} has been ${paymentStatus}!`,
+          createOrderStatusEmail(
+            this.commonService.orderEmailPayload({
+              ...checkOrder,
+              status: paymentStatus,
+            })
+          )
+        );
+      };
+
+      await notifyAndEmail(
+        `Payment has been ${paymentStatus} for Order ${checkOrder.order_no}`
+      );
 
       const res = await trx("e_order")
         .update({
@@ -248,16 +276,48 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
 
   // update
   public async updateSingleEorderTrackingService(
-    req: customRequest<IorderUpdateBody>
+    req: customRequest<IOrderUpdateBody>
   ) {
     return await this.db.transaction(async (trx) => {
-      console.log("ht");
       const { status, details, remarks } = req.body;
       const { orderId } = req.params;
+      const orderDetails: IOrder = await this.db("order_view")
+        .select("*")
+        .where({ id: orderId })
+        .first();
+
+      if (!orderDetails) {
+        throw new CustomError("Invalid Order", 412, "Unprocessable Entity");
+      }
 
       let response: { success: boolean; message: string } = {
         success: false,
         message: "",
+      };
+
+      const eOrderBody = {
+        eo_id: orderId,
+        status: status,
+        details: remarks || null,
+      };
+
+      const notifyAndEmail = async (message: string) => {
+        // Notify Customer
+        await this.commonService.createNotification(trx, "customer", {
+          customer_id: orderDetails.customer_id,
+          related_id: Number(orderId),
+          message: `Your order #${orderDetails.order_no} has been ${message}`,
+          type: "order_update",
+        });
+
+        // // Send Email to Customer
+        await Lib.sendEmail(
+          orderDetails.customer_email,
+          `Your Order #${orderDetails.order_no} has been ${message}!`,
+          createOrderStatusEmail(
+            this.commonService.orderEmailPayload({ ...orderDetails, status })
+          )
+        );
       };
 
       if (status === "rejected") {
@@ -269,66 +329,79 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
           .where({ id: orderId });
 
         if (res) {
+          await notifyAndEmail("rejected");
           response = {
             success: true,
             message: "Order rejected",
           };
         } else {
           response = {
+            success: false,
+            message: "Order cannot be rejected right now",
+          };
+        }
+      } else if (status === "delivered") {
+        const res = await trx("e_order")
+          .update({
+            status,
+            remarks,
+          })
+          .where({ id: orderId });
+
+        if (res) {
+          await notifyAndEmail("delivered");
+          response = {
             success: true,
-            message: "Order cannot rejected right now",
+            message: "Order delivered",
+          };
+        } else {
+          response = {
+            success: false,
+            message: "Order cannot be delivered right now",
+          };
+        }
+      } else if (status === "cancelled") {
+        const res = await trx("e_order")
+          .update({
+            status,
+            remarks,
+          })
+          .where({ id: orderId });
+
+        if (res) {
+          await notifyAndEmail("delivered");
+          response = {
+            success: true,
+            message: "Order delivered",
+          };
+        } else {
+          response = {
+            success: false,
+            message: "Order cannot be delivered right now",
           };
         }
       } else {
-        if (status === "delivered") {
-          const eOrderBody = {
-            id: orderId,
-            status: status,
-            details: remarks && remarks,
+        const orderTrackingRes = await trx("e_order_tracking").insert(
+          eOrderBody
+        );
+
+        // Update e-order status
+        const orderRes = await trx("e_order")
+          .update({ status, remarks })
+          .where({ id: orderId });
+
+        if (orderTrackingRes && orderRes) {
+          await notifyAndEmail(status);
+
+          response = {
+            success: true,
+            message: `Order ${status}`,
           };
-
-          const orderTrackingRes = await trx("e_order_tracking").insert(
-            eOrderBody
-          );
-
-          // e-order status updating
-          const orderRes = await trx("e_order")
-            .update({ status, remarks })
-            .where({ id: orderId });
-
-          if (orderTrackingRes) {
-            response = {
-              success: true,
-              message: "Order rejected",
-            };
-          } else {
-            response = {
-              success: true,
-              message: "Order cannot rejected right now",
-            };
-          }
         } else {
-          const eOrderBody = {
-            id: orderId,
-            status: status,
-            details: remarks && remarks,
+          response = {
+            success: false,
+            message: "Order update failed",
           };
-
-          const orderTrackingRes = await trx("e_order_tracking").insert(
-            eOrderBody
-          );
-
-          if (orderTrackingRes) {
-            response = {
-              success: true,
-              message: "Order rejected",
-            };
-          } else {
-            response = {
-              success: true,
-              message: "Order cannot rejected right now",
-            };
-          }
         }
       }
 

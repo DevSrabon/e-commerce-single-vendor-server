@@ -1,4 +1,5 @@
 import { Request } from "express";
+import { db } from "../../../app/database";
 import EcommAbstractServices from "../ecommAbstracts/ecomm.abstract.service";
 
 class EcommProductService extends EcommAbstractServices {
@@ -577,12 +578,58 @@ class EcommProductService extends EcommAbstractServices {
   }
 
   // get product for order by id array
-  public async getProductForOrder(ids: number[]) {
-    const data = await this.db("product_view")
-      .select("p_id", "available_stock", "p_name_en", "p_name_ar", "p_images")
-      .whereIn("p_id", ids)
-      .andWhere("p_status", 1)
-      .andWhereNot("available_stock", null);
+  public async getProductForOrder(
+    id: number,
+    p_size_id: number,
+    v_id: number,
+    p_color_id: number
+  ) {
+    const data = await this.db("product_view as p")
+      .select(
+        "p.p_id",
+        "p.available_stock",
+        "p.p_name_en",
+        "p.p_name_ar",
+        "p.p_images",
+        "vp.id as variant_id",
+        "vp.price as variant_price",
+        "vp.discount",
+        "vp.discount_type",
+        this.db.raw(`
+          FORMAT(
+            CASE
+              WHEN (o.id IS NOT NULL AND CURDATE() BETWEEN o.start_date AND o.end_date) THEN
+                CASE
+                  WHEN op.op_discount_type = 'percentage' THEN vp.price - (vp.price * (op.op_discount / 100))
+                  WHEN op.op_discount_type = 'fixed' THEN vp.price - op.op_discount
+                  ELSE vp.price
+                END
+              ELSE
+                CASE
+                  WHEN vp.discount_type = 'percentage' THEN vp.price - (vp.price * (vp.discount / 100))
+                  WHEN vp.discount_type = 'fixed' THEN vp.price - vp.discount
+                  ELSE vp.price
+                END
+            END, 2
+          ) AS special_price
+        `)
+      )
+      .join("variant_product as vp", "vp.p_id", "=", "p.p_id")
+      .leftJoin("offer_products as op", "vp.p_id", "=", "op.p_id")
+      .leftJoin("offers as o", function () {
+        this.on("op.offer_id", "=", "o.id").andOn("o.status", "=", db.raw("1"));
+      })
+      .where("p.p_id", id)
+      .andWhere("vp.id", v_id)
+      .andWhere("vp.size_id", p_size_id)
+      .andWhere("vp.color_id", p_color_id)
+      .andWhere("p.p_status", 1)
+      .andWhereNot("p.available_stock", null)
+      .first();
+
+    if (!data) {
+      throw new Error(`Product with id ${id} not found or invalid variant.`);
+    }
 
     return data;
   }

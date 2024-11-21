@@ -21,11 +21,23 @@ class EcommReviewController extends EcommAbstractController {
     }
   );
 
+  // Like Or Dislike Controller
+  public addLikeOrDislike = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.ecommReviewService.addLikeOrDislike(req);
+
+      if (data.success) {
+        res.status(200).json(data);
+      } else {
+        res.status(400).json(data);
+      }
+    }
+  );
+
   // get review of a product controller
   public getReviewOfProductController = this.asyncWrapper.wrap(
     async (req: Request, res: Response) => {
-      const { id } = req.params;
-      const data = await this.ecommReviewService.getReviewOfProductService(id);
+      const data = await this.ecommReviewService.getReviewOfProductService(req);
 
       res.status(200).json(data);
     }

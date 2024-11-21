@@ -15,7 +15,14 @@ class EcommCartRouter extends EcommAbstractRouter {
       .route("/")
       .all(this.authChecker.authChecker)
       .post(this.validator.addToCartValidator(), this.controller.addToCart)
-      .get(this.controller.getAllCarts);
+      .get(
+        this.validator.getAllFromCartValidator(),
+        this.controller.getAllCarts
+      )
+      .delete(
+        this.validator.removeFromCartValidator(),
+        this.controller.removeFromCart
+      );
   }
 }
 export default EcommCartRouter;

@@ -13,13 +13,14 @@ class EcommCartService extends EcommAbstractServices {
       const body = req.body as {
         p_id: number;
         v_id: number;
-        color_id: number;
+        p_color_id: number;
         size_id: number;
         quantity: number;
+        mode?: "increment" | "decrement";
         type: "cart" | "favourite";
       };
 
-      const { color_id, p_id, quantity, size_id, type, v_id } = body;
+      const { p_color_id, p_id, quantity, size_id, type, v_id, mode } = body;
 
       const checkProducts = await trx("product")
         .select("p_id")
@@ -31,7 +32,8 @@ class EcommCartService extends EcommAbstractServices {
 
       const checkColor = await trx("p_color")
         .select("id")
-        .where("color_id", color_id)
+        .where("id", p_color_id)
+        .andWhere("p_id", p_id)
         .first();
       if (!checkColor) {
         throw new CustomError("Color not found", 404, "Not Found");
@@ -54,34 +56,51 @@ class EcommCartService extends EcommAbstractServices {
         throw new CustomError("Size not found", 404, "Not Found");
       }
       const checkCart = await trx("cart_items")
-        .select("id")
+        .select("id", "quantity")
         .andWhere({ ec_id })
         .andWhere({ p_id })
         .andWhere({ v_id })
-        .andWhere({ color_id })
+        .andWhere({ p_color_id })
         .andWhere({ size_id })
         .andWhere({ type })
         .first();
       if (checkCart) {
-        await trx("cart_items")
-          .where("id", checkCart.id)
-          .increment("quantity", quantity);
-
-        return {
-          success: true,
-          message: `Successfully add to ${body.type}`,
-        };
+        if (mode === "increment") {
+          await trx("cart_items")
+            .where("id", checkCart.id)
+            .increment("quantity", 1);
+          return {
+            success: true,
+            message: `Successfully updated ${body.type}`,
+          };
+        }
+        if (mode === "decrement") {
+          if (checkCart.quantity === 1) {
+            await trx("cart_items").delete().where("id", checkCart.id);
+            return {
+              success: true,
+              message: `Successfully removed from ${body.type}`,
+            };
+          } else {
+            await trx("cart_items")
+              .where("id", checkCart.id)
+              .decrement("quantity", 1);
+          }
+          return {
+            success: true,
+            message: `Successfully updated ${body.type}`,
+          };
+        }
       } else {
         await trx("cart_items").insert({
           ec_id,
           p_id,
           v_id,
-          color_id,
+          p_color_id,
           size_id,
           quantity,
           type,
         });
-
         return {
           success: true,
           message: `Successfully add to ${body.type}`,
@@ -90,14 +109,39 @@ class EcommCartService extends EcommAbstractServices {
     });
   }
 
+  public async removeFromCart(req: Request) {
+    const { ids, type } = req.body;
+    const checkCart = await this.db("cart_items")
+      .whereIn("id", ids)
+      .andWhere({ type });
+    if (!checkCart.length) {
+      return {
+        success: false,
+        message: `${type} not found`,
+      };
+    }
+    if (checkCart.length !== ids.length) {
+      return {
+        success: false,
+        message: `Some ${type}s are missing!`,
+      };
+    }
+    await this.db("cart_items").del().whereIn("id", ids).andWhere({ type });
+    return {
+      success: true,
+      message: `${type} successfully deleted!`,
+    };
+  }
+
   //   Get all Cart Items
   public async getAllCarts(req: Request) {
     const { ec_id } = req.customer;
-    const { limit, skip } = req.query;
-    const date = new Date().toISOString().split("T")[0]; // Format date to 'YYYY-MM-DD'
+    const { limit, skip, type } = req.query;
+    const date = new Date().toISOString().split("T")[0];
 
     const data = await this.db("cart_items as ci")
       .select(
+        "ci.id",
         "p.p_id",
         "p.sku",
         "p.p_name_en",
@@ -152,7 +196,8 @@ class EcommCartService extends EcommAbstractServices {
       `)
       )
       .join("product as p", "p.p_id", "ci.p_id")
-      .join("color as c", "c.id", "ci.color_id")
+      .join("p_color as pc", "pc.id", "ci.p_color_id")
+      .join("color as c", "c.id", "pc.color_id")
       .join("size as s", "s.id", "ci.size_id")
       .join("variant_product as vp", "vp.id", "ci.v_id")
       .leftJoin("fabric as fab", "fab.id", "vp.fabric_id")
@@ -170,11 +215,13 @@ class EcommCartService extends EcommAbstractServices {
         "ci.p_id"
       )
       .where({ ec_id })
+      .andWhere({ type })
       .limit(parseInt((limit as string) || "100"))
       .offset(parseInt((skip as string) || "0"));
 
     const total = await this.db("cart_items")
       .count("id as total")
+      .andWhere({ type })
       .where({ ec_id });
 
     return {

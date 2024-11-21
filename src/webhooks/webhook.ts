@@ -2,11 +2,17 @@ import { Request, Response } from "express";
 import Stripe from "stripe";
 import { db } from "../app/database";
 import CommonAbstractServices from "../features/common/commonAbstract/common.abstract.service";
+import CommonService from "../features/common/commonService/common.service";
 import config from "../utils/config/config";
+import Lib from "../utils/lib/lib";
+import { createPaymentConfirmationEmail } from "../utils/template/orderConfirmationTemplate";
+import { IOrder } from "../utils/types/commonTypes";
 
 class Webhooks extends CommonAbstractServices {
+  private commonService = new CommonService();
   constructor() {
     super();
+    this.stripeWebhook = this.stripeWebhook.bind(this);
   }
   public async stripeWebhook(req: Request, res: Response) {
     const event = req.body;
@@ -20,13 +26,11 @@ class Webhooks extends CommonAbstractServices {
         );
 
         const orderId = paymentIntent.metadata.order_id;
-        const order = await db("e_order as eo")
-          .select("eo.*", "ec.ec_email", "esa.*", "c.c_name_en")
-          .join("e_customer as ec", "ec.ec_id", "eo.ec_id")
-          .join("ec_shipping_address as esa", "esa.id", "eo.ecsa_id")
-          .join("country as c", "c.c_id", "esa.country_id")
-          .where("eo.id", orderId)
+        const order: IOrder = await db("order_view")
+          .select("*")
+          .where({ id: orderId })
           .first();
+        console.log({ order });
         const paymentIntentCurrency = paymentIntent.currency.toLowerCase();
 
         if (!order) {
@@ -90,6 +94,14 @@ class Webhooks extends CommonAbstractServices {
             payment_method: "Stripe",
             ledger_date: new Date(),
           });
+
+          await Lib.sendEmail(
+            order.customer_email,
+            "Payment Confirmation",
+            createPaymentConfirmationEmail(
+              this.commonService.orderEmailPayload(order)
+            )
+          );
 
           // await sendEmail({
           //   to: order.ec_email,

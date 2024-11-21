@@ -3,6 +3,7 @@ import { Request } from "express";
 import config from "../../../utils/config/config";
 import CustomError from "../../../utils/lib/customError";
 import { ROOT_FOLDER } from "../../../utils/miscellaneous/constants";
+import { callProductStoredProcedure } from "../../../utils/procedure/common-procedure";
 import EcommAbstractServices from "../ecommAbstracts/ecomm.abstract.service";
 import EcommProductService from "./ecomm.product.service";
 
@@ -18,7 +19,15 @@ export interface IOrderProduct {
   quantity: number;
 }
 
+interface IOrderPayload {
+  cart_ids?: number[];
+  address_id: number;
+  coupon?: number;
+  products: IOrderProductDetails[];
+}
+
 interface IOrderProductDetails {
+  cart_id?: number;
   ep_id: number;
   id?: number;
   ep_name_en: string;
@@ -39,138 +48,183 @@ class EcommOrderService extends EcommAbstractServices {
 
   // customer place order service
   public async ecommPlaceOrderService(req: Request) {
-    const { ec_id, ec_name } = req.customer;
-    const { address_id, products, coupon } = req.body;
-    const getCurrency = await this.db("e_customer")
-      .select("currency")
-      .where({ ec_id })
-      .first();
-    const currency = getCurrency.currency;
-    if (!currency) {
-      throw new CustomError(
-        "Please Select a currency",
-        412,
-        "Unprocessable Entity"
-      );
-    }
-    const cartIds: number[] = [];
-    const pId: number[] = products.map((item: IOrderProduct) => {
-      if (item.cart_id) {
-        cartIds.push(item.cart_id);
-      }
-      return item.id;
-    });
-    const checkAddress = await this.db("ec_shipping_address as ecsa")
-      .select("ecsa.*", "c.c_name_en", "c.c_short_name")
-      .where("ec_id", ec_id)
-      .join("country as c", "ecsa.country_id", "c.c_id")
-      .andWhere("id", address_id);
+    const { ec_id, ec_name, ec_email } = req.customer;
+    const { address_id, products, coupon, cart_ids } =
+      req.body as IOrderPayload;
 
-    if (!checkAddress.length) {
-      throw new CustomError("Adress Not Found!", 404, "Not Found");
-    }
-
-    const orderProduct = await this.ecommProductService.getProductForOrder(pId);
-
-    if (pId.length !== orderProduct.length) {
-      throw new CustomError(
-        "Some of product are not available of this order",
-        412,
-        "Unprocessable Entity"
-      );
-    }
-
-    let total = 0;
-    let stockOut: string | null = null;
-    const productDetails: IOrderProductDetails[] = products.map(
-      (item: IOrderProduct, i: number) => {
-        const currProduct = orderProduct.find(
-          (item2) => item2.p_id === parseInt(item.id.toString())
-        );
-
-        if (currProduct?.available_stock < item.quantity) {
-          stockOut = `${currProduct.p_name_en} is out of stock!`;
-        }
-        total += parseInt(item.price.toString()) * item.quantity;
-        return {
-          ep_id: currProduct.p_id,
-          ep_name_en: currProduct.p_name_en,
-          ep_name_ar: currProduct.p_name_ar,
-          price: item.price,
-          quantity: item.quantity,
-          p_image: orderProduct[i].p_images.map(
-            (img: { image: string }) =>
-              `${config.AWS_S3_BASE_URL}${ROOT_FOLDER}/${img.image}`
-          ),
-          v_id: item.v_id || null,
-          p_color_id: item.p_color_id || null,
-          size_id: item.size_id || null,
-        };
-      }
-    );
-    if (stockOut) {
-      throw new CustomError("Stock Out!", 412, "Unprocessable Entity");
-    }
-    let grand_total = total;
-    let deliveryCharge = 0;
-    if (
-      checkAddress[0].c_short_name !== "AE" ||
-      checkAddress[0].c_short_name !== "OM"
-    ) {
-      const getDeliveryCharge = await this.db("delivery_charge")
-        .select("usd", "gbp")
+    return await this.db.transaction(async (trx) => {
+      // Fetch and validate currency
+      const getCurrency = await trx("e_customer")
+        .select("currency")
+        .where({ ec_id })
         .first();
-      if (currency.toLowerCase() !== "aed") {
-        deliveryCharge = parseInt(getDeliveryCharge[currency.toLowerCase()]);
-      }
-    }
-
-    let discount = 0;
-
-    if (deliveryCharge) {
-      grand_total += deliveryCharge;
-    }
-    if (coupon) {
-      const getCoupon = await this.db("coupons")
-        .select("discount", "discount_type")
-        .where("id", coupon)
-        .first();
-      if (!getCoupon) {
+      const currency = getCurrency?.currency;
+      if (!currency) {
         throw new CustomError(
-          "Invalid coupon code",
+          "Please select a currency",
           412,
           "Unprocessable Entity"
         );
       }
 
-      switch (getCoupon.discount_type) {
-        case "percentage":
-          discount = (grand_total * Number(getCoupon.discount)) / 100;
-          break;
-        case "fixed":
-          discount = Number(getCoupon.discount);
-          break;
-        default:
-          discount = 0;
+      // Validate address
+      const checkAddress = await trx("ec_shipping_address as ecsa")
+        .select("ecsa.*", "c.c_name_en", "c.c_short_name")
+        .join("country as c", "ecsa.country_id", "c.c_id")
+        .where({ ec_id })
+        .andWhere("id", address_id)
+        .first();
+
+      if (!checkAddress) {
+        throw new CustomError("Address not found", 404, "Not Found");
       }
-      grand_total -= discount;
-    }
 
-    let order_no = "1000";
-    const getLastOrder = await this.db("e_order")
-      .select("order_no")
-      .whereNotNull("order_no")
-      .orderBy("order_no", "desc")
-      .first();
-    if (getLastOrder) {
-      order_no = (+getLastOrder.order_no + 1).toString();
-    }
+      // Initialize variables for order processing
+      let total = 0;
+      let stockOut: string | null = null;
+      const productDetails: IOrderProductDetails[] = [];
+      const inventoryUpdates: { i_p_id: number; quantity: number }[] = [];
 
-    return await this.db.transaction(async (trx) => {
-      const order = await trx("e_order").insert({
-        ec_id: ec_id,
+      async function getCartItems(cart_ids: number[]) {
+        return trx("cart_items as ci")
+          .select(
+            "ci.p_id as id",
+            "pc.id as p_color_id",
+            "ps.size_id",
+            "ps.p_id as pId",
+            "vp.id as v_id",
+            "ci.quantity"
+          )
+          .join("p_color as pc", "pc.id", "ci.p_color_id")
+          .join("p_size as ps", function () {
+            this.on("ps.size_id", "ci.size_id").andOn("ps.p_id", "ci.p_id");
+          })
+          .join("variant_product as vp", "vp.id", "ci.v_id")
+          .whereIn("ci.id", cart_ids);
+      }
+      // Process products from cart_ids or directly
+      const productsToProcess = cart_ids
+        ? await getCartItems(cart_ids)
+        : products;
+
+      for (const product of productsToProcess) {
+        const orderProduct = await callProductStoredProcedure(
+          "GetProductForOrder",
+          product.id as number,
+          product.v_id,
+          product.p_color_id,
+          product.size_id
+        );
+        if (!orderProduct) {
+          throw new CustomError(
+            "Some products are not available for this order",
+            412,
+            "Unprocessable Entity"
+          );
+        }
+
+        if (orderProduct.available_stock < product.quantity) {
+          stockOut = `${orderProduct.p_name_en} is out of stock!`;
+        }
+
+        total += Number(orderProduct.special_price) * product.quantity;
+
+        // Prepare inventory updates for batch processing
+        inventoryUpdates.push({
+          i_p_id: product.id,
+          quantity: product.quantity,
+        });
+
+        productDetails.push({
+          ep_id: orderProduct.p_id,
+          ep_name_en: orderProduct.p_name_en,
+          price: orderProduct.special_price,
+          quantity: product.quantity,
+          p_image: orderProduct.p_images?.map(
+            (img: { image: string }) =>
+              `${config.AWS_S3_BASE_URL}${ROOT_FOLDER}/${img.image}`
+          ),
+          v_id: product.v_id as number,
+          p_color_id: product.p_color_id,
+          size_id: product.size_id,
+        });
+      }
+
+      // Throw error if any products are out of stock
+      if (stockOut) {
+        throw new CustomError(stockOut, 412, "Unprocessable Entity");
+      }
+
+      // Update inventory in bulk
+      await trx("inventory")
+        .whereIn(
+          "i_p_id",
+          inventoryUpdates.map((update) => update.i_p_id)
+        )
+        .update({
+          i_quantity_available: trx.raw("i_quantity_available - ??", [
+            inventoryUpdates.map((update) => update.quantity),
+          ]),
+          i_quantity_sold: trx.raw("i_quantity_sold + ??", [
+            inventoryUpdates.map((update) => update.quantity),
+          ]),
+        });
+
+      // Remove cart items in bulk
+      if (cart_ids?.length) {
+        await trx("cart_items").delete().whereIn("id", cart_ids);
+      }
+
+      // Calculate delivery charge
+      let grand_total = total;
+      let deliveryCharge = 0;
+      if (!["AE", "OM"].includes(checkAddress.c_short_name)) {
+        const deliveryData = await trx("delivery_charge")
+          .select("usd", "gbp")
+          .first();
+        deliveryCharge = parseInt(deliveryData[currency.toLowerCase()] || "0");
+        grand_total += deliveryCharge;
+      }
+
+      // Apply coupon discount
+      let discount = 0;
+      if (coupon) {
+        const getCoupon = await trx("coupons")
+          .select("discount", "discount_type")
+          .where("id", coupon)
+          .first();
+        if (!getCoupon) {
+          throw new CustomError(
+            "Invalid coupon code",
+            412,
+            "Unprocessable Entity"
+          );
+        }
+
+        if (getCoupon.discount_type === "percentage") {
+          discount = (grand_total * Number(getCoupon.discount)) / 100;
+        } else if (getCoupon.discount_type === "fixed") {
+          discount = Number(getCoupon.discount);
+        }
+        grand_total -= discount;
+      }
+
+      // Generate order number
+      let order_no = "1000";
+      const getLastOrder = await trx("e_order")
+        .select("order_no")
+        .whereNotNull("order_no")
+        .orderBy("order_no", "desc")
+        .first();
+      if (getLastOrder) {
+        order_no = (parseInt(getLastOrder.order_no) + 1).toString();
+      }
+
+      // Create order
+      const [orderId] = await trx("e_order").insert({
+        ec_id,
         ecsa_id: address_id,
-        total: total,
+        total,
         discount,
         currency,
         order_no,
@@ -178,110 +232,61 @@ class EcommOrderService extends EcommAbstractServices {
         delivery_charge: deliveryCharge,
         grand_total,
       });
-      const currProductDetails = productDetails.map((item) => {
-        const { p_image, ...rest } = item;
-        return { ...rest, eo_id: order[0] };
-      });
 
-      await trx("e_order_details").insert(currProductDetails);
-      const address = `${checkAddress[0].apt}, ${checkAddress[0].street_address}, ${checkAddress[0].city}, ${checkAddress[0].state}, ${checkAddress[0].c_name_ar}, ${checkAddress[0].zip_code}`;
+      // Add order details in bulk
+      const orderDetails = productDetails.map(({ p_image, ...item }) => ({
+        ...item,
+        eo_id: orderId,
+      }));
+      await trx("e_order_details").insert(orderDetails);
 
+      // Prepare payment address
+      const address = `${checkAddress.apt}, ${checkAddress.street_address}, ${checkAddress.city}, ${checkAddress.state}, ${checkAddress.c_name_en}, ${checkAddress.zip_code}`;
+
+      // Initiate payment
       const { redirect_url } = await this.commonService.makeStripePayment({
-        items: productDetails.map((item) => {
-          return {
-            name: item.ep_name_en,
-            amount: item.price,
-            currency: currency,
-            image: item.p_image,
-            quantity: item.quantity,
-          };
-        }),
+        items: productDetails.map((item) => ({
+          name: item.ep_name_en,
+          amount: item.price,
+          currency,
+          image: item.p_image,
+          quantity: item.quantity,
+        })),
         currency,
         discount,
         deliveryCharge,
         taxAmount: 0,
-        orderId: order[0]?.toString(),
+        orderId: orderId.toString(),
         customer: {
-          name: req.customer.ec_name,
-          email: req.customer.ec_email,
+          name: ec_name,
+          email: ec_email,
           address,
         },
       });
 
-      this.cancelQueue.add(
-        "sendCancelJob",
-        { orderId: order[0] },
-        { attempts: 0, backoff: 5000, removeOnComplete: true, delay: 3600000 }
-      );
-      // await sendEmail(
-      //   {
-      //     to: "et.srabon@gmail.com",
-      //     subject: "Order placed",
-      //     body: createOrderConfirmationEmail({
-      //       amount: total,
-      //       discountTotal: discount,
-      //       grandTotal: grand_total,
-      //       currency,
-      //       customer: {
-      //         name: req.customer.ec_name,
-      //         email: req.customer.ec_email,
-      //         address,
-      //       },
-      //       items: productDetails.map((item) => {
-      //         return {
-      //           amount: item.price,
-      //           name: item.ep_name_en,
-      //           quantity: item.quantity,
-      //           image: item.p_image,
-      //         };
-      //       }),
-      //       orderDate: new Date().toLocaleString(),
-      //       orderId: order_no,
-      //     }),
-      //   }
-      //   // "et.srabon@gmail.com",
-      //   // "Order placed",
-      //   // {
-      //   //   amount: total,
-      //   //   discountTotal: discount,
-      //   //   grandTotal: grand_total,
-      //   //   currency,
-      //   //   customer: {
-      //   //     name: req.customer.ec_name,
-      //   //     email: req.customer.ec_email,
-      //   //     address: checkAddress[0].c_name_en,
-      //   //   },
-      //   //   items: productDetails.map((item) => {
-      //   //     return {
-      //   //       amount: item.price,
-      //   //       name: item.ep_name_en,
-      //   //       quantity: item.quantity,
-      //   //       image: item.p_image,
-      //   //     };
-      //   //   }),
-      //   //   orderDate: new Date().toLocaleString(),
-      //   //   orderId: order_no,
-      //   // }
-      // );
       if (!redirect_url) {
         throw new CustomError("Payment Failure", 412, "Unprocessable Entity");
       }
-      if (cartIds.length) {
-        await trx("cart_items").del().whereIn("id", cartIds);
-      }
 
+      // Send notification
       await this.commonService.createNotification(trx, "admin", {
         customer_id: 1,
-        message: `An Order has been created by ${ec_name} with total amount /- ${grand_total}`,
-        related_id: order[0],
+        message: `An order has been created by ${ec_name} email:${ec_email} with total amount /- ${currency?.toUpperCase()} ${grand_total}`,
+        related_id: orderId,
         type: "order",
       });
+
+      // Schedule order cancellation job
+      this.cancelQueue.add(
+        "sendCancelJob",
+        { orderId },
+        { attempts: 0, backoff: 5000, removeOnComplete: true, delay: 3600000 }
+      );
+
       return {
         success: true,
         message: "Order placed!",
-        data: {
-          redirect_url,
-        },
+        data: { redirect_url },
       };
     });
   }
@@ -338,22 +343,8 @@ class EcommOrderService extends EcommAbstractServices {
       .join("country as c", "esa.country_id", "c.c_id")
       .where("esa.id", ecsa_id);
 
-    const products = await this.db("e_order_details as eod")
-      .select(
-        "eod.id as id",
-        "eod.ep_name_en as ep_name_en",
-        "eod.ep_name_ar as ep_name_ar",
-        "eod.price as price",
-        "eod.quantity as quantity",
-        "eod.color_id as color_id",
-        "cl.color_en",
-        "cl.color_ar",
-        "sz.size"
-      )
-      .leftJoin("color as cl", "eod.color_id", "cl.id")
-      .leftJoin("size as sz", "eod.size_id", "sz.id")
-      .leftJoin("variant_product as av", "eod.v_id", "av.id")
-      .leftJoin("fabric as fa", "av.fabric_id", "fa.id")
+    const products = await this.db("order_details_view as eod")
+      .select("*")
       .where("eod.eo_id", order[0].id);
 
     return {

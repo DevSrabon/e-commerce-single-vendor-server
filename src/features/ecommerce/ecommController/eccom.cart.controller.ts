@@ -8,10 +8,22 @@ class EcommCartController extends EcommAbstractController {
     super();
   }
 
-  // place order controller
+  // Add to cart controller
   public addToCart = this.asyncWrapper.wrap(
     async (req: Request, res: Response) => {
       const data = await this.service.addToCart(req);
+      if (data!.success) {
+        res.json(data);
+      } else {
+        res.status(400).json(data);
+      }
+    }
+  );
+
+  // Remove from cart controller
+  public removeFromCart = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.service.removeFromCart(req);
       if (data.success) {
         res.json(data);
       } else {
@@ -31,25 +43,5 @@ class EcommCartController extends EcommAbstractController {
       }
     }
   );
-
-  // get order controller
-  //   public getOrderService = this.asyncWrapper.wrap(
-  //     async (req: Request, res: Response) => {
-  //       const data = await this.service.ecommGetOrderService(req);
-  //       res.status(200).json(data);
-  //     }
-  //   );
-
-  //   // get single order controller
-  //   public geSingleOrderService = this.asyncWrapper.wrap(
-  //     async (req: Request, res: Response) => {
-  //       const data = await this.service.getSingleOrderService(req);
-  //       if (data.success) {
-  //         res.status(200).json(data);
-  //       } else {
-  //         res.status(404).json(data);
-  //       }
-  //     }
-  //   );
 }
 export default EcommCartController;

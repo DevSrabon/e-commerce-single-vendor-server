@@ -4,6 +4,7 @@ import { Stripe } from "stripe";
 import { io } from "../../../app/socket";
 import config from "../../../utils/config/config";
 import Lib from "../../../utils/lib/lib";
+import { IOrder } from "../../../utils/types/commonTypes";
 import { IEcommCustomer } from "../../ecommerce/ecommUtils/ecommTypes/ecommCustomerTypes";
 import CommonAbstractServices from "../commonAbstract/common.abstract.service";
 
@@ -355,7 +356,32 @@ class CommonService extends CommonAbstractServices {
     };
   }
 
-  // Update SocketId
+  public orderEmailPayload(payload: IOrder) {
+    return {
+      amount: Number(payload.total),
+      currency: payload.currency,
+      customer: {
+        name: payload.address_name,
+        email: payload.customer_email,
+        phone: payload.address_phone,
+        address: `${payload.address_apt}, ${payload.address_street_address}, ${payload.address_city}, ${payload.address_country_name_en}`,
+      },
+      discountTotal: Number(payload.discount),
+      grandTotal: Number(payload.grand_total),
+      orderId: payload.order_no,
+      status: payload.status,
+      orderDate: payload.created_at,
+      items: payload.order_details.map((item) => {
+        return {
+          amount: Number(item.price),
+          name: item.product_name_en,
+          quantity: item.quantity,
+          image: item.color_images[0],
+        };
+      }),
+    };
+  }
+
   // Update SocketId
   public async updateSocketId({
     id,

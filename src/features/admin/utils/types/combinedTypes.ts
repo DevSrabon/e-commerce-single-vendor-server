@@ -32,7 +32,7 @@ enum status {
   cancelled = "cancelled",
 }
 
-export interface IorderUpdateBody {
+export interface IOrderUpdateBody {
   status: status;
   remarks?: string;
   details?: string;
