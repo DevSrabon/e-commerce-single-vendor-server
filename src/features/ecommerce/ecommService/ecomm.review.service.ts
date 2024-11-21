@@ -277,10 +277,6 @@ class EcommReviewService extends EcommAbstractServices {
       }
       if (removeImages) {
         const parsedRemoveImages: number[] = JSON.parse(removeImages);
-        console.log(
-          "🚀 ~ EcommReviewService ~ returnawaitthis.db.transaction ~ parsedRemoveImages:",
-          parsedRemoveImages
-        );
         const checkImages = await trx("epr_image")
           .select("id", "image")
           .whereIn("id", parsedRemoveImages);
@@ -303,7 +299,6 @@ class EcommReviewService extends EcommAbstractServices {
           checkImages.map((img) => img.image)
         );
       }
-      console.log("============", Object.keys(body));
       if (Object.keys(body).length) {
         await trx("e_product_review").update(body).where("id", id);
       }
