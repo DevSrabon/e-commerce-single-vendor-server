@@ -8,12 +8,12 @@ class AdminEcommerceReviewService extends AdminAbstractServices {
 
   //get all ecommerce review
   public async getAllEreviewService(req: Request) {
-    const { from_date, to_date, limit, skip, status } = req.query;
+    const { from_date, to_date, limit, skip, parent, status } = req.query;
 
     const endDate = new Date(to_date as string);
     endDate.setDate(endDate.getDate() + 1);
 
-    const dtbs = this.db("product_review AS epr");
+    const dtbs = this.db("p_review_view AS prv");
 
     if (limit) {
       dtbs.limit(parseInt(limit as string));
@@ -25,43 +25,48 @@ class AdminEcommerceReviewService extends AdminAbstractServices {
     const data = await dtbs
       .select(
         "id",
-        "ec_id",
-        "ec_name",
-        "ec_image",
-        "ep_id",
-        "p_name",
         "rating",
+        "parent_id",
         "comment",
-        "status"
+        "status",
+        "created_at",
+        "product_id",
+        "product_name_en",
+        "customer_id",
+        "customer_name",
+        "customer_image"
       )
-      .join("product_view AS epv", "epr.ep_id", "epv.ep_id")
-      .join("e_customer AS ec", "epr.ec_id", "ec.ec_id")
       .where(function () {
+        if (Number(parent) === 0) {
+          this.andWhere("prv.parent_id", null);
+        }
         if (from_date && to_date) {
-          this.andWhereBetween("epr.created_at", [
+          this.andWhereBetween("prv.created_at", [
             from_date as string,
             endDate,
           ]);
         }
+
         if (status) {
-          this.andWhere("epr.status", status);
+          this.andWhere("prv.status", status);
         }
       })
       .orderBy("id", "desc");
 
-    const count = await this.db("product_review AS epr")
-      .count("epr.id AS total")
-      .join("product_view AS epv", "epr.ep_id", "epv.ep_id")
-      .join("e_customer AS ec", "epr.ec_id", "ec.ec_id")
+    const count = await this.db("p_review_view AS prv")
+      .count("prv.id AS total")
       .where(function () {
+        if (Number(parent) === 0) {
+          this.andWhere("prv.parent_id", null);
+        }
         if (from_date && to_date) {
-          this.andWhereBetween("epr.created_at", [
+          this.andWhereBetween("prv.created_at", [
             from_date as string,
             endDate,
           ]);
         }
         if (status) {
-          this.andWhere("epr.status", status);
+          this.andWhere("prv.status", status);
         }
       });
 
@@ -76,24 +81,9 @@ class AdminEcommerceReviewService extends AdminAbstractServices {
   public async getSingleEreviewService(req: Request) {
     const { id } = req.params;
 
-    const data = await this.db("product_review AS epr")
-      .select(
-        "id",
-        "ec_id",
-        "ec_name",
-        "ec_image",
-        "ep_id",
-        "p_name",
-        "rating",
-        "comment",
-        "epri_image",
-        "status",
-        "created_at"
-      )
-      .join("product_view AS epv", "epr.ep_id", "epv.ep_id")
-      .join("e_customer AS ec", "epr.ec_id", "ec.ec_id")
-      .leftJoin("image AS epri", "epr.id", "epri.epri_id")
-      .where("epr.id", id);
+    const data = await this.db("p_review_view AS prv")
+      .select("*")
+      .where("prv.id", id);
 
     if (data.length) {
       return {
@@ -103,7 +93,37 @@ class AdminEcommerceReviewService extends AdminAbstractServices {
     } else {
       return {
         success: false,
-        message: "Review doesnot found with this id",
+        message: "Review does not found with this id",
+      };
+    }
+  }
+
+  // delete Review
+  public async deleteReviewService(req: Request) {
+    const { id } = req.params;
+    const check = await this.db("e_product_review")
+      .select("id")
+      .andWhere("id", id)
+      .first();
+    if (!check) {
+      return {
+        success: false,
+        message: "Review Not found",
+      };
+    }
+    const res = await this.db("e_product_review")
+      .update({ status: 0 })
+      .andWhere("id", id);
+
+    if (res) {
+      return {
+        success: true,
+        message: "Review deleted successfully",
+      };
+    } else {
+      return {
+        success: false,
+        message: "Invalid review",
       };
     }
   }

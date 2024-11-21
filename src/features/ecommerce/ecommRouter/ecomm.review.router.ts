@@ -47,6 +47,12 @@ class EcommReviewRouter extends EcommAbstractRouter {
     // delete a review
     this.router
       .route("/:id")
+      .patch(
+        this.authChecker.authChecker,
+        this.uploader.storageUploadRaw("ecommerce/review"),
+        this.ecommReviewValidator.updateEcommReviewValidator(),
+        this.ecommReviewController.updateReview
+      )
       .delete(
         this.authChecker.authChecker,
         this.commonValidator.singleParamInputValidator(

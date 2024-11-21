@@ -42,6 +42,13 @@ class EcommReviewController extends EcommAbstractController {
       res.status(200).json(data);
     }
   );
+  public updateReview = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.ecommReviewService.updateReviewService(req);
+
+      res.status(200).json(data);
+    }
+  );
 
   // get review of customer
   public getReviewOfCustomerController = this.asyncWrapper.wrap(

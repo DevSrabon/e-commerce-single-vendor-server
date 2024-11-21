@@ -66,7 +66,7 @@ class AdminAuthService extends AbstractServices {
           au_role,
         },
         config.JWT_SECRET_ADMIN,
-        "1d"
+        "7d"
       );
 
       return {
@@ -124,7 +124,7 @@ class AdminAuthService extends AbstractServices {
         type: "admin",
       },
       config.JWT_SECRET_ADMIN,
-      "1d"
+      "7d"
     );
 
     return {

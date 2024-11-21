@@ -1,4 +1,5 @@
 import { Request } from "express";
+import CustomError from "../../../utils/lib/customError";
 import EcommAbstractServices from "../ecommAbstracts/ecomm.abstract.service";
 
 class EcommReviewService extends EcommAbstractServices {
@@ -78,10 +79,11 @@ class EcommReviewService extends EcommAbstractServices {
     const res = await this.db("e_product_review").insert(productReviewPayload);
 
     if (files.length) {
-      const reviewImage: { epri_image: string; epri_epr_id: number }[] =
-        files.map((item) => {
-          return { epri_image: item.filename, epri_epr_id: res[0] };
-        });
+      const reviewImage: { image: string; epr_id: number }[] = files.map(
+        (item) => {
+          return { image: item.filename, epr_id: res[0] };
+        }
+      );
       await this.db("epr_image").insert(reviewImage);
     }
 
@@ -194,7 +196,7 @@ class EcommReviewService extends EcommAbstractServices {
       )
       .where("epr.product_id", id)
       .andWhere("epr.status", 1);
-    console.log(data);
+
     if (!data || data.length === 0) {
       return {
         success: true,
@@ -231,6 +233,7 @@ class EcommReviewService extends EcommAbstractServices {
   public async getReviewOfCustomerService(id: number) {
     const data = await this.db("p_review_view")
       .select("*")
+      .whereNotNull("parent_id")
       .andWhere("customer_id", id)
       .andWhere("status", 1);
 
@@ -241,10 +244,89 @@ class EcommReviewService extends EcommAbstractServices {
   }
 
   // update review
-  public async updateReviewService(req: Request) {}
+  public async updateReviewService(req: Request) {
+    return await this.db.transaction(async (trx) => {
+      const { removeImages, ...body } = req.body;
+      const { id } = req.params;
+      const { ec_id } = req.customer;
+
+      const check = await trx("e_product_review as epr")
+        .select("id")
+        .where((qb) => {
+          qb.andWhere("epr.ec_id", ec_id);
+          qb.andWhere("epr.id", id);
+        })
+        .first();
+
+      if (!check) {
+        throw new CustomError(
+          "You can't edit other's review",
+          412,
+          "Unprocessable Entity"
+        );
+      }
+      const files = req.files as Express.Multer.File[] | [];
+
+      if (files && files.length) {
+        const reviewImage: { image: string; epr_id: number }[] = files.map(
+          (item) => {
+            return { image: item.filename, epr_id: +id };
+          }
+        );
+        await trx("epr_image").insert(reviewImage);
+      }
+      if (removeImages) {
+        const parsedRemoveImages: number[] = JSON.parse(removeImages);
+        console.log(
+          "🚀 ~ EcommReviewService ~ returnawaitthis.db.transaction ~ parsedRemoveImages:",
+          parsedRemoveImages
+        );
+        const checkImages = await trx("epr_image")
+          .select("id", "image")
+          .whereIn("id", parsedRemoveImages);
+        if (!checkImages.length) {
+          throw new CustomError(
+            "Images are not found to remove",
+            412,
+            "Unprocessable Entity"
+          );
+        }
+        if (checkImages.length !== parsedRemoveImages.length) {
+          throw new CustomError(
+            "Some Images are not found to remove",
+            412,
+            "Unprocessable Entity"
+          );
+        }
+        await trx("epr_image").delete().whereIn("id", parsedRemoveImages);
+        await this.manageFile.deleteFromStorage(
+          checkImages.map((img) => img.image)
+        );
+      }
+      console.log("============", Object.keys(body));
+      if (Object.keys(body).length) {
+        await trx("e_product_review").update(body).where("id", id);
+      }
+      return {
+        success: true,
+        message: "successfully updated",
+      };
+    });
+  }
 
   // delete Review
   public async deleteReviewService(id: string | number, ec_id: number) {
+    const check = await this.db("e_product_review")
+      .select("id")
+      .andWhere("id", id)
+      .first()
+      .andWhere("ec_id", ec_id);
+    if (!check) {
+      return {
+        success: false,
+        message: "Review Not found",
+      };
+    }
     const res = await this.db("e_product_review")
       .update({ status: 0 })
       .andWhere("id", id)

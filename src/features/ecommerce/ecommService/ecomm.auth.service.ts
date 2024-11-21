@@ -44,7 +44,7 @@ class EcommAuthService extends EcommAbstractServices {
         type: "customer_session",
       },
       config.JWT_SECRET_CUSTOMER,
-      "24h"
+      "7d"
     );
 
     return {
@@ -97,7 +97,7 @@ class EcommAuthService extends EcommAbstractServices {
     const token = Lib.createToken(
       { ...rest, type: "customer_session" },
       config.JWT_SECRET_CUSTOMER,
-      "24h"
+      "7d"
     );
 
     return {

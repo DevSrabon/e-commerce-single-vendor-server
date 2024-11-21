@@ -16,6 +16,21 @@ class EcommReviewValidator {
         .isEmpty(),
     ];
   }
+
+  // update review
+  public updateEcommReviewValidator() {
+    return [
+      body("rating", "Provide valid rating 1 to 5")
+        .optional()
+        .isInt({ min: 1, max: 5 }),
+      body("comment", "Provide valid comment as review")
+        .optional()
+        .isString()
+        .not()
+        .isEmpty(),
+      body("removeImages").isString().optional(),
+    ];
+  }
   // Like dislike
   public addLikeOrDislikeValidator() {
     return [

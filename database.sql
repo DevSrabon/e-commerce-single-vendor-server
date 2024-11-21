@@ -227,13 +227,13 @@ VIEW `p_review_view` AS
         `r`.`comment` AS `comment`,
         (SELECT
                 JSON_ARRAYAGG(JSON_OBJECT('image_id',
-                                    `ri`.`epri_image_id`,
+                                    `ri`.`id`,
                                     'image_name',
-                                    `ri`.`epri_image`))
+                                    `ri`.`image`))
             FROM
                 `epr_image` `ri`
             WHERE
-                (`ri`.`epri_epr_id` = `r`.`id`)) AS `review_images`,
+                (`ri`.`epr_id` = `r`.`id`)) AS `review_images`,
         `r`.`status` AS `status`,
         `r`.`created_at` AS `created_at`,
         `p`.`p_id` AS `product_id`,
@@ -247,3 +247,15 @@ VIEW `p_review_view` AS
         ((`e_product_review` `r`
         JOIN `product_view` `p` ON ((`r`.`p_id` = `p`.`p_id`)))
         LEFT JOIN `e_customer` `c` ON ((`r`.`ec_id` = `c`.`ec_id`)))
+
+
+ALTER TABLE `pksf_digital`.`epr_image`
+DROP FOREIGN KEY `epri_epr_id`;
+ALTER TABLE `pksf_digital`.`epr_image`
+CHANGE COLUMN `epri_image_id` `id` INT NOT NULL AUTO_INCREMENT ,
+CHANGE COLUMN `epri_image` `image` VARCHAR(255) NOT NULL ,
+CHANGE COLUMN `epri_epr_id` `epr_id` INT NOT NULL ;
+ALTER TABLE `pksf_digital`.`epr_image`
+ADD CONSTRAINT `epri_epr_id`
+  FOREIGN KEY (`epr_id`)
+  REFERENCES `pksf_digital`.`e_product_review` (`id`);
