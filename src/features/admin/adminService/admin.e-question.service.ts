@@ -8,7 +8,8 @@ class AdminEcommerceQuestionService extends AdminAbstractServices {
 
   //get all ecommerce question
   public async getAllEquestionService(req: Request) {
-    const { from_date, to_date, limit, skip, question, answer } = req.query;
+    const { from_date, to_date, limit, status, skip, question, answer } =
+      req.query;
 
     const endDate = new Date(to_date as string);
     endDate.setDate(endDate.getDate() + 1);
@@ -26,7 +27,8 @@ class AdminEcommerceQuestionService extends AdminAbstractServices {
       .select(
         "epq_id",
         "epq_ep_id",
-        "epv.p_name",
+        "epv.p_name_en",
+        "epv.p_name_ar",
         "epq_question",
         "epq_question_date",
         "epq_ec_id",
@@ -35,9 +37,12 @@ class AdminEcommerceQuestionService extends AdminAbstractServices {
         "ec_image",
         "epq_status"
       )
-      .join("product_view AS epv", "qna.epq_ep_id", "epv.ep_id")
+      .join("product_view AS epv", "qna.epq_ep_id", "epv.p_id")
       .join("e_customer AS ec", "qna.epq_ec_id", "ec.ec_id")
       .where(function () {
+        if (status) {
+          this.andWhere("qna.epq_status", status);
+        }
         if (from_date && to_date) {
           this.andWhereBetween("qna.epq_question_date", [
             from_date as string,
@@ -55,9 +60,12 @@ class AdminEcommerceQuestionService extends AdminAbstractServices {
 
     const count = await this.db("ep_qna AS qna")
       .count("qna.epq_id AS total")
-      .join("product_view AS epv", "qna.epq_ep_id", "epv.ep_id")
+      .join("product_view AS epv", "qna.epq_ep_id", "epv.p_id")
       .join("e_customer AS ec", "qna.epq_ec_id", "ec.ec_id")
       .where(function () {
+        if (status) {
+          this.andWhere("qna.epq_status", status);
+        }
         if (from_date && to_date) {
           this.andWhereBetween("qna.epq_question_date", [
             from_date as string,
@@ -85,7 +93,8 @@ class AdminEcommerceQuestionService extends AdminAbstractServices {
       .select(
         "epq_id",
         "epq_ep_id",
-        "epv.p_name",
+        "epv.p_name_en",
+        "epv.p_name_ar",
         "p_images",
         "epq_question",
         "epq_question_date",
@@ -98,7 +107,7 @@ class AdminEcommerceQuestionService extends AdminAbstractServices {
         "ec_image",
         "epq_status"
       )
-      .join("product_view AS epv", "qna.epq_ep_id", "epv.ep_id")
+      .join("product_view AS epv", "qna.epq_ep_id", "epv.p_id")
       .join("e_customer AS ec", "qna.epq_ec_id", "ec.ec_id")
       .where("qna.epq_id", id);
 
@@ -119,11 +128,11 @@ class AdminEcommerceQuestionService extends AdminAbstractServices {
   public async updateSingleEquestionService(req: Request) {
     const { qId } = req.params;
     const { type } = req.query;
-    const { epq_status, epq_answer } = req.body;
+    const { status, epq_answer } = req.body;
 
     const data = await this.db("ep_qna AS qna")
       .select("epq_id")
-      .join("product_view AS epv", "qna.epq_ep_id", "epv.ep_id")
+      .join("product_view AS epv", "qna.epq_ep_id", "epv.p_id")
       .where("qna.epq_id", qId);
 
     if (!data.length) {
@@ -157,7 +166,7 @@ class AdminEcommerceQuestionService extends AdminAbstractServices {
     } else {
       const updateRes = await this.db("ep_qna")
         .update({
-          epq_status,
+          epq_status: status,
         })
         .where({ epq_id: qId });
 
