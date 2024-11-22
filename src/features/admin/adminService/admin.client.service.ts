@@ -207,11 +207,7 @@ class AdminClientService extends AdminAbstractServices {
     if (files.length) {
       req.body[files[0]?.fieldname] = files[0]?.filename;
     }
-
-    console.log(req.body);
     const res = await this.db("client").update(req.body).where({ cl_id: id });
-
-    console.log({ res });
 
     if (res) {
       return {

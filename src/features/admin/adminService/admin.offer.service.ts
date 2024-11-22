@@ -188,7 +188,6 @@ class AdminOfferService extends AdminAbstractServices {
       deleteProductIds,
       ...rest
     } = req.body;
-    console.log({ editProductIds: req.body });
     const files = (req.files as Express.Multer.File[]) || [];
     const parsedAddProductIds: IOfferProducts[] = addProductIds
       ? JSON.parse(addProductIds)
@@ -244,7 +243,6 @@ class AdminOfferService extends AdminAbstractServices {
 
     return await this.db.transaction(async (trx) => {
       if (Object.keys(rest).length) {
-        console.log("=============");
         await trx("offers")
           .where({ id: offer_id })
           .update({
@@ -306,7 +304,6 @@ class AdminOfferService extends AdminAbstractServices {
           if (!getOfferProduct.length) {
             throw new Error("Offer product doesn't exists!");
           }
-          console.log("=============");
           await trx("offer_products")
             .where({ p_id: pId.p_id, offer_id, id: pId.id })
             .update({

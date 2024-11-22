@@ -40,7 +40,6 @@ class EcommAuthChecker {
         .status(401)
         .json({ success: false, message: "Invalid token or token expired!" });
     } else {
-      console.log({ verify });
       if (verify.type !== "customer_session" || verify.ec_status === 0) {
         return res.status(401).json({
           success: false,

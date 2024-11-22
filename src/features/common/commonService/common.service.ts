@@ -49,8 +49,6 @@ class CommonService extends CommonAbstractServices {
         Lib.generateHtmlOtpPage(otp, obj.otpFor)
       );
 
-      console.log({ sended });
-
       await trx("email_otp").insert(otpCreds);
 
       if (sended) {
@@ -155,7 +153,6 @@ class CommonService extends CommonAbstractServices {
     const check = await this.db(obj.table)
       .select("*")
       .where(obj.field, obj.value);
-    console.log({ check });
     if (check.length) {
       return true;
     } else {
@@ -249,7 +246,6 @@ class CommonService extends CommonAbstractServices {
       address: string;
     };
   }) {
-    console.log({ payload: JSON.stringify(payload) });
     const stripe = new Stripe(config.STRIPE_SECRET_KEY);
 
     let coupon;

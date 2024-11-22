@@ -30,7 +30,6 @@ class Webhooks extends CommonAbstractServices {
           .select("*")
           .where({ id: orderId })
           .first();
-        console.log({ order });
         const paymentIntentCurrency = paymentIntent.currency.toLowerCase();
 
         if (!order) {
