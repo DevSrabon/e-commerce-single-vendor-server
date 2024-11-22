@@ -216,7 +216,8 @@ class EcommReviewService extends EcommAbstractServices {
     for (const review of data) {
       if (review.parent_id) {
         if (map[review.parent_id]) {
-          map[review.parent_id].children.push(review);
+          const { rating, review_images, ...rest } = review;
+          map[review.parent_id].children.push(rest);
         }
       } else {
         comments.push(review);
