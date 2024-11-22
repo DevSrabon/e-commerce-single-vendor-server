@@ -1,6 +1,7 @@
 import { Request } from "express";
 import { Knex } from "knex";
 import { Stripe } from "stripe";
+import { db } from "../../../app/database";
 import { io } from "../../../app/socket";
 import config from "../../../utils/config/config";
 import Lib from "../../../utils/lib/lib";
@@ -426,18 +427,22 @@ class CommonService extends CommonAbstractServices {
 
   // Create Notification
   public async createNotification(
-    trx: Knex.Transaction,
     type: "admin" | "customer",
     payload: {
       customer_id: number;
       related_id: number;
       message: string;
       type: string;
-    }
+    },
+    trx?: Knex.Transaction
   ) {
     const table =
       type === "admin" ? "admin_notification" : "customer_notification";
-    await trx(table).insert(payload);
+    if (trx) {
+      await trx(table).insert(payload);
+    } else {
+      await db(table).insert(payload);
+    }
     await this.emitNotification(payload);
   }
 }

@@ -91,45 +91,33 @@ class AdminEcustomerService extends AdminAbstractServices {
       .where("ec.ec_id", id);
 
     // all order by customer
-    const orderData = await this.db("e_order AS eo")
-      .select("id", "status", "grand_total", "eo.created_at")
-      .join("e_customer AS ec", "eo.ec_id", "ec.ec_id")
-      .join("ec_shipping_address AS esa", "eo.ecsa_id", "esa.ecsa_id")
-      .join("address_view AS av", "esa.ecsa_ar_id", "av.area_id")
-      .where({ "eo.ec_id": id });
+    const orderData = await this.db("order_view AS eo").where({
+      "eo.customer_id": id,
+    });
 
     // review by customer
-    const review = await this.db("product_review AS epr")
-      .select(
-        "id",
-        "ec_id",
-        "ec_name",
-        "ec_image",
-        "p_id",
-        "p_name",
-        "rating",
-        "comment",
-        "status"
-      )
-      .join("product_view AS epv", "epr.p_id", "epv.p_id")
-      .join("e_customer AS ec", "epr.ec_id", "ec.ec_id")
-      .where("epr.ec_id", id);
+    const review = await this.db("p_review_view AS epr")
+      .select("*")
+
+      .andWhere("epr.customer_id", id)
+      .andWhere("epr.parent_id", null)
+      .andWhere("status", 1);
 
     // questions by customer
 
-    const question = await this.db("p_qna AS qna")
-      .select(
-        "epq_id",
-        "epq_p_id",
-        "epv.p_name",
-        "epq_question",
-        "epq_question_date",
-        "epq_ec_id",
-        "epq_ec_id",
-        "ec_name",
-        "ec_image"
-      )
-      .join("product_view AS epv", "qna.epq_p_id", "epv.p_id")
+    const question = await this.db("ep_qna AS qna")
+      .select
+      // "epq_id",
+      // "epq_p_id",
+      // "epv.p_name",
+      // "epq_question",
+      // "epq_question_date",
+      // "epq_ec_id",
+      // "epq_ec_id",
+      // "ec_name",
+      // "ec_image"
+      ()
+      .join("product_view AS epv", "qna.epq_ep_id", "epv.p_id")
       .join("e_customer AS ec", "qna.epq_ec_id", "ec.ec_id")
       .where("qna.epq_ec_id", id);
 

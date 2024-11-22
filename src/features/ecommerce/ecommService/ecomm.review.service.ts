@@ -9,9 +9,16 @@ class EcommReviewService extends EcommAbstractServices {
 
   // create review service
   public async createReviewService(req: Request) {
-    const { rating, product_id, id, comment, order_id } = req.body;
+    const { rating, product_id, parent_id, comment, order_id } = req.body;
     const { ec_id } = req.customer;
     const files = (req.files as Express.Multer.File[]) || [];
+    const checkProduct = await this.db("e_order_details")
+      .andWhere("eo_id", product_id)
+      .andWhere("eo_id", order_id)
+      .first();
+    if (!checkProduct) {
+      throw new CustomError("Product Doesn't Found!", 404, "Not Found");
+    }
     const checkOrder = await this.db("e_order")
       .select("id")
       .andWhere("id", order_id)
@@ -48,10 +55,10 @@ class EcommReviewService extends EcommAbstractServices {
       parent_id?: number;
       rating?: number;
     };
-    if (id) {
+    if (parent_id) {
       const checkParent = await this.db("e_product_review")
         .select("id")
-        .where("id", id)
+        .where("id", parent_id)
         .first();
       if (!checkParent)
         return {
@@ -62,7 +69,7 @@ class EcommReviewService extends EcommAbstractServices {
         ec_id: ec_id,
         p_id: product_id,
         comment: comment,
-        parent_id: id,
+        parent_id,
         rating: rating,
         eo_id: order_id,
       };
@@ -216,7 +223,15 @@ class EcommReviewService extends EcommAbstractServices {
     for (const review of data) {
       if (review.parent_id) {
         if (map[review.parent_id]) {
-          const { rating, review_images, ...rest } = review;
+          const {
+            rating,
+            review_images,
+            product_name_en,
+            product_name_ar,
+            product_slug,
+            product_id,
+            ...rest
+          } = review;
           map[review.parent_id].children.push(rest);
         }
       } else {

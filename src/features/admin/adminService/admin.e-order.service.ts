@@ -227,12 +227,16 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
       const paymentStatus = payment_status === 1 ? "completed" : "failed";
       const notifyAndEmail = async (message: string) => {
         // Notify Customer
-        await this.commonService.createNotification(trx, "customer", {
-          customer_id: req.customer.ec_id,
-          related_id: Number(id),
-          message: `Your order has been ${message}`,
-          type: "order_update",
-        });
+        await this.commonService.createNotification(
+          "customer",
+          {
+            customer_id: req.customer.ec_id,
+            related_id: Number(id),
+            message: `Your order has been ${message}`,
+            type: "order_update",
+          },
+          trx
+        );
         // // Send Email to Customer
         await Lib.sendEmail(
           req.customer.ec_email,
@@ -303,12 +307,16 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
 
       const notifyAndEmail = async (message: string) => {
         // Notify Customer
-        await this.commonService.createNotification(trx, "customer", {
-          customer_id: orderDetails.customer_id,
-          related_id: Number(orderId),
-          message: `Your order #${orderDetails.order_no} has been ${message}`,
-          type: "order_update",
-        });
+        await this.commonService.createNotification(
+          "customer",
+          {
+            customer_id: orderDetails.customer_id,
+            related_id: Number(orderId),
+            message: `Your order #${orderDetails.order_no} has been ${message}`,
+            type: "order_update",
+          },
+          trx
+        );
 
         // // Send Email to Customer
         await Lib.sendEmail(

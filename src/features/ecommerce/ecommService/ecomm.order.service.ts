@@ -269,12 +269,16 @@ class EcommOrderService extends EcommAbstractServices {
       }
 
       // Send notification
-      await this.commonService.createNotification(trx, "admin", {
-        customer_id: 1,
-        message: `An order has been created by ${ec_name} email:${ec_email} with total amount /- ${currency?.toUpperCase()} ${grand_total}`,
-        related_id: orderId,
-        type: "order",
-      });
+      await this.commonService.createNotification(
+        "admin",
+        {
+          customer_id: 1,
+          message: `An order has been created by ${ec_name} email:${ec_email} with total amount /- ${currency?.toUpperCase()} ${grand_total}`,
+          related_id: orderId,
+          type: "order",
+        },
+        trx
+      );
 
       // Schedule order cancellation job
       this.cancelQueue.add(

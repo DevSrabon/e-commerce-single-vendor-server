@@ -5,9 +5,13 @@ class EcommReviewValidator {
   public createEcommReviewValidator() {
     return [
       body("order_id", "Provide valid order id").exists().isInt(),
-      body("rating", "Provide valid rating 1 to 5")
-        .exists()
-        .isInt({ min: 1, max: 5 }),
+      body("parent_id", "Provide valid parent id").isInt().optional(),
+      body("rating")
+        .if(body("parent_id").not().exists())
+        .exists({ checkFalsy: true })
+        .withMessage("Rating is required for a top-level review")
+        .isInt({ min: 1, max: 5 })
+        .withMessage("Rating must be an integer between 1 and 5"),
       body("product_id", "Provide valid product id").exists().isInt(),
       body("comment", "Provide valid comment as review")
         .exists()
