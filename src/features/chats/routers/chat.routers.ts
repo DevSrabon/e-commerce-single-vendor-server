@@ -23,6 +23,12 @@ class ChatRouters extends CommonAbstractRouter {
         this.controller.createChatForCustomer
       );
     this.router
+      .route("/customer/:id")
+      .post(
+        this.adminAuthChecker.authChecker,
+        this.controller.createChatForCustomerFromAdmin
+      );
+    this.router
       .route("/send-message")
       .post(
         this.uploader.storageUploadRaw("chats"),

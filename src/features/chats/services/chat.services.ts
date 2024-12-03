@@ -82,6 +82,45 @@ class ChatService extends CommonAbstractServices {
       };
     });
   }
+  public async createChatForCustomerFromAdmin(req: Request) {
+    const { id } = req.params;
+    return await this.db.transaction(async (trx) => {
+      const checkCustomer = await trx("e_customer")
+        .select("ec_id")
+        .where("ec_id", id)
+        .first();
+      if (!checkCustomer) {
+        throw new CustomError("Customer not found!", 404, "Not Found");
+      }
+      const checkConversation = await trx("conversation")
+        .select("id")
+        .where({ participant_id: id })
+        .andWhere("type", "customer")
+        .first();
+      if (checkConversation) {
+        throw new CustomError(
+          "Conversation Already Exists!",
+          412,
+          "Unprocessable Entity"
+        );
+      }
+      const res = await trx("conversation").insert({
+        participant_id: id,
+        type: "customer",
+      });
+      await trx("e_customer")
+        .update({ conversation_id: res[0] })
+        .where({ ec_id: id });
+
+      return {
+        success: true,
+        message: "Conversation created successfully",
+        data: {
+          id: res[0],
+        },
+      };
+    });
+  }
 
   // Save and send a chat message
   public async sendChatMessage(req: Request) {

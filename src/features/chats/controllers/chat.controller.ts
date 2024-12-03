@@ -17,6 +17,12 @@ class ChatController extends CommonAbstractController {
       res.status(200).json(result);
     }
   );
+  public createChatForCustomerFromAdmin = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const result = await this.chatService.createChatForCustomerFromAdmin(req);
+      res.status(200).json(result);
+    }
+  );
 
   public sendChatMessage = this.asyncWrapper.wrap(
     async (req: Request, res: Response) => {
