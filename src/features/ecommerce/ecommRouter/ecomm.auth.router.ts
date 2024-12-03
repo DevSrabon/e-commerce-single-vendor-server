@@ -1,6 +1,6 @@
-import EcommCustomerValidator from "../ecommUtils/ecommValidator/ecommCustomerValidator";
 import EcommAbstractRouter from "../ecommAbstracts/ecomm.abstract.router";
 import EcommAuthController from "../ecommController/ecomm.auth.controller";
+import EcommCustomerValidator from "../ecommUtils/ecommValidator/ecommCustomerValidator";
 
 class EcommAuthRouter extends EcommAbstractRouter {
   private ecommAuthController = new EcommAuthController();
@@ -15,7 +15,7 @@ class EcommAuthRouter extends EcommAbstractRouter {
     this.router
       .route("/login")
       .post(
-        this.commonValidator.loginValidator(),
+        this.commonValidator.customerLoginValidator(),
         this.ecommAuthController.customerLoginController
       );
 

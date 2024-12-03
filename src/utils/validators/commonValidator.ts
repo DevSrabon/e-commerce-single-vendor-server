@@ -4,6 +4,15 @@ class CommonValidator {
   // commin login input validator
   public loginValidator() {
     return [
+      body("email", "Enter valid email or phone").exists().isString(),
+      body("password", "Enter valid password minimum length 8")
+        .exists()
+        .isString()
+        .isLength({ min: 8 }),
+    ];
+  }
+  public customerLoginValidator() {
+    return [
       body("type", "Enter Valid type")
         .isIn(["social", "default"])
         .exists()
