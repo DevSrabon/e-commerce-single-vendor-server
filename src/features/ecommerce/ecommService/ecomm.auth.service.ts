@@ -10,7 +10,7 @@ class EcommAuthService extends EcommAbstractServices {
 
   // signup customer service
   public async signupCustomerService(req: Request) {
-    const { name, email, password } = req.body;
+    const { name, email, password, type } = req.body;
     const checkCustomer = await this.commonService.commonCheckCustomer(email);
 
     if (checkCustomer.length) {
@@ -20,14 +20,20 @@ class EcommAuthService extends EcommAbstractServices {
         message: "This email is already exist!",
       };
     }
-
-    const hashedPass = await Lib.hashPass(password);
-
-    const customer = await this.db("e_customer").insert({
-      ec_name: name,
+    let customerPayload: {
+      ec_email: string;
+      ec_name?: string;
+      ec_password?: string;
+    } = {
       ec_email: email,
-      ec_password: hashedPass,
-    });
+      ec_name: name || undefined,
+    };
+    if (type === "default") {
+      const hashedPass = await Lib.hashPass(password);
+      customerPayload.ec_password = hashedPass;
+    }
+
+    const customer = await this.db("e_customer").insert(customerPayload);
 
     const customerData = {
       ec_name: name,
@@ -57,7 +63,7 @@ class EcommAuthService extends EcommAbstractServices {
 
   // login customer service
   public async loginCustomerService(req: Request) {
-    const { email, password } = req.body;
+    const { email, password, type } = req.body;
     const checkCustomer = await this.commonService.commonCheckCustomer(email);
 
     if (!checkCustomer.length) {
@@ -84,14 +90,16 @@ class EcommAuthService extends EcommAbstractServices {
     }
 
     const { ec_password, ...rest } = checkCustomer[0];
-    const checkPass = await Lib.compare(password, ec_password);
+    if (type === "default") {
+      const checkPass = await Lib.compare(password, ec_password);
 
-    if (!checkPass) {
-      return {
-        success: false,
-        message: "Email or password is incorrect",
-        code: 400,
-      };
+      if (!checkPass) {
+        return {
+          success: false,
+          message: "Email or password is incorrect",
+          code: 400,
+        };
+      }
     }
 
     const token = Lib.createToken(

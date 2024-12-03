@@ -4,13 +4,17 @@ class EcommCustomerValidator {
   // customer signup validator
   public EcommCustomerSignupValidator() {
     return [
-      body("name", "Provide valid name.")
+      body("type", "Enter Valid type")
+        .isIn(["social", "default"])
         .exists()
+        .default("default"),
+      body("name", "Provide valid name.")
+        .if(body("type").equals("default").exists())
         .isString()
         .isLength({ min: 4 }),
       body("email", "Provide valid email.").exists().isEmail(),
-      body("password", "Provide valid password must be length 8.")
-        .exists()
+      body("password", "Enter valid password minimum length 8")
+        .if(body("type").equals("default").exists())
         .isString()
         .isLength({ min: 8 }),
     ];

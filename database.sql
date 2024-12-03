@@ -259,3 +259,29 @@ ALTER TABLE `pksf_digital`.`epr_image`
 ADD CONSTRAINT `epri_epr_id`
   FOREIGN KEY (`epr_id`)
   REFERENCES `pksf_digital`.`e_product_review` (`id`);
+
+
+
+CREATE TABLE chat_sessions (
+    session_id CHAR(36) PRIMARY KEY,
+    user_type ENUM('anonymous', 'customer', 'admin') NOT NULL,
+    user_id INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE chat_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,     -- Unique message ID
+    session_id CHAR(36),                   -- UUID stored as CHAR(36), references chat_sessions
+    sender_type ENUM('anonymous', 'customer', 'admin') NOT NULL, -- Limited sender types
+    sender_id INT DEFAULT NULL,            -- NULL for anonymous, IDs for others
+    message TEXT NOT NULL,                 -- Chat message content
+    files JSON DEFAULT NULL,
+    recipient_type ENUM('anonymous', 'customer', 'admin') NOT NULL, -- "customer", "anonymous", or "admin"
+    recipient_id INT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for the message
+    FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE CASCADE -- Reference with cascade
+);
+
+ALTER TABLE `pksf_digital`.`e_customer`
+ADD COLUMN `conversation_id` INT NULL AFTER `ec_is_deleted`;

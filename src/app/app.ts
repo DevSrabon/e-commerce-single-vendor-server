@@ -1,4 +1,4 @@
-import cookieParser from "cookie-parser"; // Ensure cookie-parser is imported
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { Application, NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
@@ -9,6 +9,7 @@ import CommonService from "../features/common/commonService/common.service";
 import ErrorHandler from "../features/common/middlewares/errorHandler/errorHandler";
 import CustomError from "../utils/lib/customError";
 import { origin } from "../utils/miscellaneous/constants";
+import { IUserType } from "../utils/types/commonTypes";
 import Webhooks from "../webhooks/webhook";
 import RootRouter from "./router";
 import { io, SocketServer } from "./socket";
@@ -60,21 +61,23 @@ class App {
     // Apply rate limiting to avoid brute-force attacks
     const limiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100, // limit each IP to 100 requests per windowMs
+      max: 200, // limit each IP to 100 requests per windowMs
       message:
         "Too many requests from this IP, please try again after 15 minutes.",
     });
     this.app.use(limiter);
 
-    // // CSRF protection using cookies
-    // const csrfProtection = csurf({ cookie: true });
-    // // Provide CSRF token to the client as a cookie
+    // // CSRF protection middleware
+    // this.app.use(csurf({ cookie: true }));
+
+    // Provide CSRF token to clients
     // this.app.use((req: Request, res: Response, next: NextFunction) => {
-    //   const csrfToken = req.csrfToken(); // Get CSRF token
-    //   res.cookie("XSRF-TOKEN", csrfToken, { httpOnly: true });
+    //   if (req.csrfToken) {
+    //     const csrfToken = req.csrfToken();
+    //     res.cookie("XSRF-TOKEN", csrfToken, { httpOnly: false, secure: false });
+    //   }
     //   next();
     // });
-    // this.app.use(csrfProtection);
 
     // HSTS: Enforce HTTPS, prevent downgrade attacks
     this.app.use(
@@ -88,8 +91,10 @@ class App {
   // socket connecton
   private socket() {
     io.on("connection", async (socket) => {
-      let users: any = {};
-      const { id, type } = socket.handshake.auth;
+      const { id, type } = socket.handshake.auth as {
+        id: number;
+        type: IUserType;
+      };
       console.log(`⚡: ${socket.id} user just connected!`);
 
       socket.on("read_message", async (event) => {
@@ -106,11 +111,17 @@ class App {
           socketId: socket.id,
           type: "customer",
         });
-      } else if (type === "admin_user" && id) {
+      } else if (type === "admin" && id) {
         await this.commonService.updateSocketId({
           id,
           socketId: socket.id,
           type: "admin",
+        });
+      } else if (type === "anonymous" && id) {
+        await this.commonService.updateSocketId({
+          id,
+          socketId: socket.id,
+          type: "anonymous",
         });
       }
     });
@@ -122,10 +133,19 @@ class App {
       res.send(`Server is running....🚀`);
     });
 
+    this.app.get("/health-check", (req: Request, res: Response) => {
+      console.log(req);
+      return res.status(200).json({
+        status: 200,
+        message: "Hello from health-check path!",
+        agent: req.headers["user-agent"],
+      });
+    });
+
     // // Expose CSRF token for Postman
-    // this.app.get("/csrf-token", (_req: Request, res: Response) => {
-    //   res.json({ csrfToken: _req.csrfToken() });
-    // });
+    this.app.get("/csrf-token", (_req: Request, res: Response) => {
+      res.json({ csrfToken: _req.csrfToken() });
+    });
 
     // Use the API routes
     this.app.use("/api/v1", new RootRouter().v1Router);

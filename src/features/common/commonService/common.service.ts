@@ -5,7 +5,7 @@ import { db } from "../../../app/database";
 import { io } from "../../../app/socket";
 import config from "../../../utils/config/config";
 import Lib from "../../../utils/lib/lib";
-import { IOrder } from "../../../utils/types/commonTypes";
+import { IOrder, IUserType } from "../../../utils/types/commonTypes";
 import { IEcommCustomer } from "../../ecommerce/ecommUtils/ecommTypes/ecommCustomerTypes";
 import CommonAbstractServices from "../commonAbstract/common.abstract.service";
 
@@ -199,7 +199,8 @@ class CommonService extends CommonAbstractServices {
         "c_name_ar",
         "country_id",
         "ec_status",
-        "ec_is_deleted"
+        "ec_is_deleted",
+        "conversation_id"
       )
       .leftJoin("country", "c_id", "country_id")
       .where("ec_email", email);
@@ -386,7 +387,7 @@ class CommonService extends CommonAbstractServices {
     socketId,
   }: {
     id: number;
-    type: "customer" | "admin";
+    type: IUserType;
     socketId: string;
   }) {
     try {
@@ -401,6 +402,10 @@ class CommonService extends CommonAbstractServices {
             .update({ socket_id: socketId })
             .where({ au_id: id });
           break;
+        case "anonymous":
+          await this.db("anonymous_user")
+            .update({ socket_id: socketId })
+            .where({ id });
         default:
           throw new Error("Invalid user type");
       }

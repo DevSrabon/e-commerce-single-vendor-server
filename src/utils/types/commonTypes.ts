@@ -61,3 +61,5 @@ export interface IOrder {
   order_details: OrderDetail[];
   tracking_status: any[];
 }
+
+export type IUserType = "customer" | "anonymous" | "admin";
