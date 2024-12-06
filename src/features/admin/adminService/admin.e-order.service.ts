@@ -99,99 +99,6 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
       };
     }
   }
-  // public async getSingleEorderService(req: Request) {
-  //   const { id } = req.params;
-
-  //   const data = await this.db("e_order AS eo")
-  //     .select(
-  //       "eo.id",
-  //       "eo.status",
-  //       "eo.currency",
-  //       "eo.payment_status",
-  //       "eo.total",
-  //       "eo.discount",
-  //       "eo.delivery_charge",
-  //       "eo.grand_total",
-  //       "eo.remarks",
-  //       "eo.created_at",
-  //       "eo.updated_at",
-  //       "ec.ec_id",
-  //       "ec.ec_name",
-  //       "ec.ec_phone",
-  //       "ec.ec_email",
-  //       "esa.name as address_name",
-  //       "esa.phone as address_phone",
-  //       "esa.apt as address_apt",
-  //       "esa.street_address as address_street_address",
-  //       "esa.label as address_label",
-  //       "esa.city as address_city",
-  //       "esa.zip_code as address_zip_code",
-  //       "esa.state as address_state",
-  //       "esa.country_id as address_country_id"
-  //     )
-  //     .leftJoin("e_customer AS ec", "eo.ec_id", "ec.ec_id")
-  //     .leftJoin("ec_shipping_address AS esa", "eo.ecsa_id", "esa.id")
-  //     .leftJoin("country AS c", "esa.country_id", "c.c_id")
-  //     .where("eo.id", id);
-
-  //   const order_details = await this.db("e_order_details AS eod")
-  //     .select(
-  //       "eod.id",
-  //       "eod.eo_id",
-  //       "eod.ep_id",
-  //       "eod.ep_name_en",
-  //       "eod.ep_name_ar",
-  //       "eod.price",
-  //       "eod.quantity",
-  //       "eod.v_id",
-  //       "eod.size_id",
-  //       "eod.p_color_id",
-  //       "eod.created_at",
-  //       "f.name_en as fabric_name_en",
-  //       "f.name_ar as fabric_name_ar",
-  //       "f.details_en as fabric_details_en",
-  //       "f.details_ar as fabric_details_ar",
-  //       "sz.size",
-  //       this.db.raw(`CONCAT(sz.height, sz.attribute) AS height`),
-  //       this.db.raw(`CONCAT(sz.weight, sz.attribute) AS weight`),
-  //       "sz.details as size_details",
-  //       "cl.color_en as color_en",
-  //       "cl.color_ar as color_ar",
-  //       "cl.details_en as color_details_en",
-  //       "cl.details_ar as color_details_ar",
-  //       this.db.raw(`
-  //         (
-  //           SELECT JSON_ARRAYAGG(ci.image)
-  //           FROM color_image AS ci
-  //           WHERE ci.p_color_id = pc.id
-  //         ) AS color_images
-  //       `)
-  //     )
-  //     .leftJoin("variant_product AS v", "eod.v_id", "v.id")
-  //     .leftJoin("fabric as f", "v.fabric_id", "f.id")
-  //     .leftJoin("size AS sz", "eod.size_id", "sz.id")
-  //     .leftJoin("p_color AS pc", "eod.p_color_id", "pc.id")
-  //     .leftJoin("color AS cl", "pc.color_id", "cl.id")
-  //     .where("eod.eo_id", id);
-
-  //   const order_tracking_status = await this.db("e_order_tracking")
-  //     .select("status", "details", "date_time")
-  //     .where({ id: id });
-
-  //   if (data.length) {
-  //     return {
-  //       success: true,
-  //       data: { ...data[0], order_details, order_tracking_status },
-  //     };
-  //   } else {
-  //     return {
-  //       success: false,
-  //       message: "Order doesn't found with this id",
-  //     };
-  //   }
-  // }
-
-  // update single ecommerce order
   public async updateSingleEorderPaymentService(
     req: customRequest<IOrderUpdateBody>
   ) {
@@ -284,7 +191,7 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
     req: customRequest<IOrderUpdateBody>
   ) {
     return await this.db.transaction(async (trx) => {
-      const { status, details, remarks } = req.body;
+      const { status, remarks } = req.body;
       const { orderId } = req.params;
       const orderDetails: IOrder = await this.db("order_view")
         .select("*")
@@ -326,7 +233,6 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
           },
           trx
         );
-
         // // Send Email to Customer
         await Lib.sendEmail(
           orderDetails.customer_email,
@@ -348,6 +254,7 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
             remarks,
           })
           .where({ id: orderId });
+
         if (status === "delivered") {
           await trx("e_order_tracking").insert(eOrderBody);
         }
@@ -370,7 +277,6 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
 
         if (orderTrackingRes) {
           await notifyAndEmail(status);
-
           response = {
             success: true,
             message: `Order ${status}`,

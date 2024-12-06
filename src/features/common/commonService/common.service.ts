@@ -355,6 +355,7 @@ class CommonService extends CommonAbstractServices {
   }
 
   public orderEmailPayload(payload: IOrder) {
+    console.log({ payload: JSON.stringify(payload) });
     return {
       amount: Number(payload.total),
       currency: payload.currency,
@@ -369,12 +370,15 @@ class CommonService extends CommonAbstractServices {
       orderId: payload.order_no,
       status: payload.status,
       orderDate: payload.created_at,
-      items: payload.order_details.map((item) => {
+      items: payload.order_details?.map((item) => {
         return {
           amount: Number(item.price),
           name: item.product_name_en,
           quantity: item.quantity,
           image: item.color_images[0],
+          color: item.color_name_en,
+          size: item.size_name,
+          fabric: item.fabric_name_en,
         };
       }),
     };

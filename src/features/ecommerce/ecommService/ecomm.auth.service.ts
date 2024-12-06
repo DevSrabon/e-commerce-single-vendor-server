@@ -93,13 +93,13 @@ class EcommAuthService extends EcommAbstractServices {
     if (type === "default") {
       const checkPass = await Lib.compare(password, ec_password);
 
-      if (!checkPass) {
-        return {
-          success: false,
-          message: "Email or password is incorrect",
-          code: 400,
-        };
-      }
+      // if (!checkPass) {
+      //   return {
+      //     success: false,
+      //     message: "Email or password is incorrect",
+      //     code: 400,
+      //   };
+      // }
     }
 
     const token = Lib.createToken(

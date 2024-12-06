@@ -8,7 +8,15 @@ export interface IOrderStatus {
   grandTotal: number;
   currency: string;
   customer: { name: string; email: string; address: string; phone: string };
-  items: { name: string; amount: number; quantity: number; image?: string }[];
+  items: {
+    name: string;
+    amount: number;
+    quantity: number;
+    image?: string;
+    color: string;
+    fabric: string;
+    size: string;
+  }[];
 }
 
 export interface OrderDetail {
