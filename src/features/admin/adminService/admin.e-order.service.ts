@@ -85,7 +85,7 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
   public async getSingleEorderService(req: Request) {
     const { id } = req.params;
 
-    const data = await this.db("order_view").where("id", id);
+    const data = await this.db("order_view").where("id", id).first();
 
     if (data.length) {
       return {
