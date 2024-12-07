@@ -11,12 +11,35 @@ class AdminProfileController extends AdminAbstractController {
   // get profile data
   public getAdminProfileData = this.asyncWrapper.wrap(
     async (req: Request, res: Response) => {
-      const { au_id } = req.user;
-      const data = await this.AdminProfileService.getAdminProfileData(au_id);
+      const data = await this.AdminProfileService.getAdminProfileData(req);
       if (data.success) {
         res.status(200).json(data);
       } else {
         res.status(401).json(data);
+      }
+    }
+  );
+  // update profile data
+  public updateAdminProfile = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const { code, ...data } =
+        await this.AdminProfileService.updateAdminProfile(req);
+      if (data.success) {
+        res.status(code).json(data);
+      } else {
+        res.status(code).json(data);
+      }
+    }
+  );
+  public changePassword = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const { code, ...data } = await this.AdminProfileService.changePassword(
+        req
+      );
+      if (data.success) {
+        res.status(code).json(data);
+      } else {
+        res.status(code).json(data);
       }
     }
   );
