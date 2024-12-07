@@ -87,10 +87,11 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
 
     const data = await this.db("order_view").where("id", id).first();
 
-    if (data.length) {
+    if (data) {
       return {
         success: true,
         data,
+        message: "successfully fetched!",
       };
     } else {
       return {
