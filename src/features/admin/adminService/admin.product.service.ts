@@ -303,7 +303,6 @@ class AdminProductService extends AdminAbstractServices {
 
       const barcode = new Lib().generateBarCode(productId);
       const sku = new Lib().generateSKU(productId, p_name_en);
-      console.log({ sku });
       await trx("product")
         .update({
           sku,
