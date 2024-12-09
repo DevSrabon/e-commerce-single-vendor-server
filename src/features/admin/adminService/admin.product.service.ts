@@ -265,6 +265,29 @@ class AdminProductService extends AdminAbstractServices {
           if (!checkVariant.length) {
             throw new Error("Invalid fabric id");
           }
+          const price = Number(el.price);
+          const discount = Number(el.discount);
+          let discountedPrice = 0;
+
+          if (el.discount_type === "percentage") {
+            discountedPrice = price - (price * discount) / 100;
+          } else if (el.discount_type === "fixed") {
+            discountedPrice = price - discount;
+          }
+          if (discountedPrice < 0) {
+            throw new CustomError(
+              `Discounted price is invalid!`,
+              412,
+              "Unprocessable Entity"
+            );
+          }
+          if (price < discountedPrice) {
+            throw new CustomError(
+              `Discounted price can't be gether than product product!`,
+              412,
+              "Unprocessable Entity"
+            );
+          }
           return {
             p_id: productId,
             fabric_id: el.id,
@@ -277,10 +300,10 @@ class AdminProductService extends AdminAbstractServices {
       if (variantInsertedData.length) {
         await trx("variant_product").insert(variantInsertedData);
       }
-      console.log("sku", "cate", categoryArray[0].cate_name_en);
 
       const barcode = new Lib().generateBarCode(productId);
       const sku = new Lib().generateSKU(productId, p_name_en);
+      console.log({ sku });
       await trx("product")
         .update({
           sku,
@@ -521,11 +544,39 @@ class AdminProductService extends AdminAbstractServices {
           };
         }
 
-        await trx("variant_product").insert(
-          addedVariants.map((el: IProductVariants) => {
-            return { p_id: id, fabric_id: el.id, price: el.price };
-          })
-        );
+        const variantPayload = addedVariants.map((el: IProductVariants) => {
+          const price = Number(el.price);
+          const discount = Number(el.discount);
+          let discountedPrice = 0;
+
+          if (el.discount_type === "percentage") {
+            discountedPrice = price - (price * discount) / 100;
+          } else if (el.discount_type === "fixed") {
+            discountedPrice = price - discount;
+          }
+          if (discountedPrice < 0) {
+            throw new CustomError(
+              `Discounted price is invalid!`,
+              412,
+              "Unprocessable Entity"
+            );
+          }
+          if (price < discountedPrice) {
+            throw new CustomError(
+              `Discounted price can't be gether than product product!`,
+              412,
+              "Unprocessable Entity"
+            );
+          }
+          return {
+            p_id: id,
+            fabric_id: el.id,
+            price: el.price,
+            discount: el.discount,
+            discount_type: el.discount_type,
+          };
+        });
+        await trx("variant_product").insert(variantPayload);
       }
 
       if (editVariants.length) {
@@ -539,6 +590,29 @@ class AdminProductService extends AdminAbstractServices {
             throw new Error("Invalid variant id");
           }
 
+          const price = Number(el.price);
+          const discount = Number(el.discount);
+          let discountedPrice = 0;
+
+          if (el.discount_type === "percentage") {
+            discountedPrice = price - (price * discount) / 100;
+          } else if (el.discount_type === "fixed") {
+            discountedPrice = price - discount;
+          }
+          if (discountedPrice < 0) {
+            throw new CustomError(
+              `Discounted price is invalid!`,
+              412,
+              "Unprocessable Entity"
+            );
+          }
+          if (price < discountedPrice) {
+            throw new CustomError(
+              `Discounted price can't be gether than product product!`,
+              412,
+              "Unprocessable Entity"
+            );
+          }
           const checkFabric = await trx("fabric")
             .select("id")
             .where({ id: el.fabric_id });

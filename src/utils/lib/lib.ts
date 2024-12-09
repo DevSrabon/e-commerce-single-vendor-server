@@ -45,7 +45,7 @@ class Lib {
     }
   }
   public generateBarCode(productId: number) {
-    return `${productId}${Lib.otpGenNumber(6)}`;
+    return `${productId}${Lib.otpGenNumberAndAlphabet(6)}`;
   }
 
   public generateSKU(productId: number, productName: string) {
@@ -77,7 +77,7 @@ class Lib {
     let otp = "";
 
     for (let i = 0; i < length; i++) {
-      const randomNumber = Math.floor(Math.random() * 10);
+      const randomNumber = Math.floor(Math.random() * 36);
 
       otp += allStrings[randomNumber];
     }
