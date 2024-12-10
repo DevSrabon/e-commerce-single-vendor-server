@@ -195,8 +195,8 @@ class AdminProductService extends AdminAbstractServices {
             }
 
             const colorImages: any[] = [];
-            files.forEach((file, index) => {
-              if (file.fieldname === `colorsPhotos_${index + 1}`) {
+            files.forEach((file) => {
+              if (file.fieldname === `colorsPhotos_${colorIndex + 1}`) {
                 colorImages.push({
                   p_id: productId,
                   p_color_id: pColor + colorIndex,
@@ -265,28 +265,25 @@ class AdminProductService extends AdminAbstractServices {
           if (!checkVariant.length) {
             throw new Error("Invalid fabric id");
           }
-          const price = Number(el.price);
-          const discount = Number(el.discount);
-          let discountedPrice = 0;
-
           if (el.discount_type === "percentage") {
-            discountedPrice = price - (price * discount) / 100;
-          } else if (el.discount_type === "fixed") {
-            discountedPrice = price - discount;
-          }
-          if (discountedPrice < 0) {
-            throw new CustomError(
-              `Discounted price is invalid!`,
-              412,
-              "Unprocessable Entity"
-            );
-          }
-          if (price < discountedPrice) {
-            throw new CustomError(
-              `Discounted price can't be gether than product product!`,
-              412,
-              "Unprocessable Entity"
-            );
+            if (
+              Number(el.price) <=
+              Number(el.price) - (Number(el.discount) * Number(el.price)) / 100
+            ) {
+              throw new CustomError(
+                "Discount price is greater than product price!",
+                412,
+                "Unprocessable Entity"
+              );
+            }
+          } else {
+            if (Number(el.price) <= Number(el.price) - Number(el.discount)) {
+              throw new CustomError(
+                "Discount price is greater than product price!",
+                412,
+                "Unprocessable Entity"
+              );
+            }
           }
           return {
             p_id: productId,
@@ -543,39 +540,11 @@ class AdminProductService extends AdminAbstractServices {
           };
         }
 
-        const variantPayload = addedVariants.map((el: IProductVariants) => {
-          const price = Number(el.price);
-          const discount = Number(el.discount);
-          let discountedPrice = 0;
-
-          if (el.discount_type === "percentage") {
-            discountedPrice = price - (price * discount) / 100;
-          } else if (el.discount_type === "fixed") {
-            discountedPrice = price - discount;
-          }
-          if (discountedPrice < 0) {
-            throw new CustomError(
-              `Discounted price is invalid!`,
-              412,
-              "Unprocessable Entity"
-            );
-          }
-          if (price < discountedPrice) {
-            throw new CustomError(
-              `Discounted price can't be gether than product product!`,
-              412,
-              "Unprocessable Entity"
-            );
-          }
-          return {
-            p_id: id,
-            fabric_id: el.id,
-            price: el.price,
-            discount: el.discount,
-            discount_type: el.discount_type,
-          };
-        });
-        await trx("variant_product").insert(variantPayload);
+        await trx("variant_product").insert(
+          addedVariants.map((el: IProductVariants) => {
+            return { p_id: id, fabric_id: el.id, price: el.price };
+          })
+        );
       }
 
       if (editVariants.length) {
@@ -589,29 +558,6 @@ class AdminProductService extends AdminAbstractServices {
             throw new Error("Invalid variant id");
           }
 
-          const price = Number(el.price);
-          const discount = Number(el.discount);
-          let discountedPrice = 0;
-
-          if (el.discount_type === "percentage") {
-            discountedPrice = price - (price * discount) / 100;
-          } else if (el.discount_type === "fixed") {
-            discountedPrice = price - discount;
-          }
-          if (discountedPrice < 0) {
-            throw new CustomError(
-              `Discounted price is invalid!`,
-              412,
-              "Unprocessable Entity"
-            );
-          }
-          if (price < discountedPrice) {
-            throw new CustomError(
-              `Discounted price can't be gether than product product!`,
-              412,
-              "Unprocessable Entity"
-            );
-          }
           const checkFabric = await trx("fabric")
             .select("id")
             .where({ id: el.fabric_id });
@@ -673,7 +619,7 @@ class AdminProductService extends AdminAbstractServices {
               color_id: colorId,
             });
             const colorPhotos = files.filter(
-              (file, index) => file.fieldname === `new_color_image_${index + 1}`
+              (file) => file.fieldname === `new_color_image_${colorIndex + 1}`
             );
 
             if (!colorPhotos.length) {
