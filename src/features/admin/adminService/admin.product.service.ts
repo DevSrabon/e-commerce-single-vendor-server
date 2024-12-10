@@ -195,8 +195,8 @@ class AdminProductService extends AdminAbstractServices {
             }
 
             const colorImages: any[] = [];
-            files.forEach((file) => {
-              if (file.fieldname === `colorsPhotos_${colorIndex + 1}`) {
+            files.forEach((file, index) => {
+              if (file.fieldname === `colorsPhotos_${index + 1}`) {
                 colorImages.push({
                   p_id: productId,
                   p_color_id: pColor + colorIndex,
@@ -673,7 +673,7 @@ class AdminProductService extends AdminAbstractServices {
               color_id: colorId,
             });
             const colorPhotos = files.filter(
-              (file) => file.fieldname === `new_color_image_${colorIndex + 1}`
+              (file, index) => file.fieldname === `new_color_image_${index + 1}`
             );
 
             if (!colorPhotos.length) {
