@@ -155,7 +155,7 @@ class AdminOfferService extends AdminAbstractServices {
         "p.p_status",
         "p.categories",
         this.db.raw(
-          'JSON_UNQUOTE(JSON_EXTRACT(p.p_images, "$[0].image")) AS p_image'
+          "JSON_ARRAY((JSON_EXTRACT(p_images, '$[0].image'))) AS p_image"
         ),
         this.db.raw(`
           JSON_ARRAY(
