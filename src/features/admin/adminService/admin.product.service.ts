@@ -452,18 +452,14 @@ class AdminProductService extends AdminAbstractServices {
       ? JSON.parse(removed_sizes)
       : [];
 
-    const checkProduct = await this.db("product")
-      .select("p_name_en")
-      .where({ p_id: id });
-
-    if (!checkProduct.length) {
-      return {
-        success: false,
-        message: "Product not found",
-      };
-    }
-
     return await this.db.transaction(async (trx) => {
+      const checkProduct = await trx("product")
+        .select("p_name_en")
+        .where({ p_id: id });
+
+      if (!checkProduct.length) {
+        throw new CustomError("Product not found", 404, "Not Found");
+      }
       const files = (req.files as Express.Multer.File[]) || [];
 
       const newImage: { pi_image: string; pi_p_id: number | string }[] = [];
@@ -502,10 +498,7 @@ class AdminProductService extends AdminAbstractServices {
           .whereIn("id", removeVariants)
           .andWhere("p_id", id);
         if (!checkVariant.length) {
-          return {
-            success: false,
-            message: "Variant not found",
-          };
+          throw new CustomError("Variant not found", 404, "Not Found");
         }
         await trx("variant_product")
           .whereIn("id", removeVariants)
@@ -525,19 +518,15 @@ class AdminProductService extends AdminAbstractServices {
           throw new Error("Invalid fabric id");
         }
 
+        const fabricIds = addedVariants.map((el: IProductVariants) => el.id);
+
         const checkVariant = await trx("variant_product")
           .select("id")
-          .whereIn(
-            "fabric_id",
-            addedVariants.map((el: IProductVariants) => el.id)
-          )
+          .whereIn("fabric_id", fabricIds)
           .andWhere("p_id", id);
 
         if (checkVariant.length) {
-          return {
-            success: false,
-            message: "Variant already exist",
-          };
+          throw new CustomError("Variant already exist!", 412);
         }
 
         await trx("variant_product").insert(
@@ -781,17 +770,19 @@ class AdminProductService extends AdminAbstractServices {
             message: "Product name in English or Arabic already exists",
           };
         }
-        const p_slug = Lib.stringToSlug(rest.p_name_en);
-        const checkSlug = await this.db("product").select("p_slug").where({
-          p_slug,
-        });
-        if (checkSlug.length) {
-          return {
-            success: false,
-            message: "Product slug already exists",
-          };
+        if (rest.p_name_en) {
+          const p_slug = Lib.stringToSlug(rest.p_name_en);
+          const checkSlug = await this.db("product").select("p_slug").where({
+            p_slug,
+          });
+          if (checkSlug.length) {
+            return {
+              success: false,
+              message: "Product slug already exists",
+            };
+          }
+          rest.p_slug = p_slug;
         }
-        rest.p_slug = p_slug;
       }
 
       if (Object.keys(rest).length !== 0) {
