@@ -64,7 +64,8 @@ class EcommQnaService extends EcommAbstractServices {
     const data = await this.db("ep_qna as epq")
       .select(
         "epq.epq_id as id",
-        "epv.p_name as product_name",
+        "epv.p_name_en as p_name_en",
+        "epv.p_name_ar as p_name_ar",
         "epv.p_images as product_images",
         "epv.p_slug as slug",
         "epq.epq_question as question",
@@ -73,7 +74,7 @@ class EcommQnaService extends EcommAbstractServices {
         "epq.epq_answer_date as answer_date",
         "epq.epq_status as status"
       )
-      .leftJoin("product_view as epv", "epq.epq_ep_id", "epv.ep_id")
+      .leftJoin("product_view as epv", "epq.epq_ep_id", "epv.p_id")
       .andWhere("epq.epq_ec_id", id)
       .andWhere("epq.epq_status", 1);
 
