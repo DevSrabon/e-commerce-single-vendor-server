@@ -272,7 +272,11 @@ class CommonService extends CommonAbstractServices {
         });
       }
     }
-
+    // coupon = await stripe.coupons.create({
+    //   amount_off: 10 * 100,
+    //   currency: payload.currency,
+    //   duration: "once",
+    // });
     const lineItems: {
       price_data: {
         currency: string;
@@ -344,8 +348,6 @@ class CommonService extends CommonAbstractServices {
       });
     }
 
-    console.log({ lineItems: JSON.stringify(lineItems) });
-    // return;
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: lineItems,
@@ -353,7 +355,6 @@ class CommonService extends CommonAbstractServices {
       discounts: coupon ? [{ coupon: coupon.id }] : [],
       success_url: `http://localhost:3000/success?order_id=1`,
       cancel_url: `http://localhost:3000/cancel?order_id=1`,
-
       customer_email: payload.customer.email,
       payment_intent_data: {
         metadata: {
