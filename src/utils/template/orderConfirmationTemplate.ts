@@ -15,10 +15,9 @@ export const createPaymentConfirmationEmail = (payload: IOrderStatus) => {
     customer,
     items,
   } = payload;
-
   // Create product cards HTML
   const productCards = items
-    .map(
+    ?.map(
       (item) => `
       <div style="border: 1px solid #e0e0e0; border-radius: 5px; margin: 10px 0; padding: 10px; display: flex; align-items: center;">
         ${
@@ -27,7 +26,7 @@ export const createPaymentConfirmationEmail = (payload: IOrderStatus) => {
             : ""
         }
         <div>
-          <h3 style="margin: 0;">${item.name}</h3>
+          <h3 style="margin: 0;">${item.fabric_name_en}</h3>
           <p style="margin: 5px 0;">Price: ${currency.toUpperCase()} ${item.amount.toFixed(
         2
       )}</p>

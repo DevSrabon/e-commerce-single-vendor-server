@@ -106,7 +106,12 @@ class EcommOrderService extends EcommAbstractServices {
       const productsToProcess = cart_ids
         ? await getCartItems(cart_ids)
         : products;
-
+      if (!productsToProcess.length) {
+        throw new CustomError(
+          `No ${cart_ids?.length ? "Cart Found!" : "Product"}`,
+          404
+        );
+      }
       for (const product of productsToProcess) {
         const orderProduct = await callProductStoredProcedure(
           "GetProductForOrder",
@@ -155,22 +160,23 @@ class EcommOrderService extends EcommAbstractServices {
         throw new CustomError(stockOut, 412, "Unprocessable Entity");
       }
 
-      // Update inventory in bulk
-      await trx("inventory")
-        .whereIn(
-          "i_p_id",
-          inventoryUpdates.map((update) => update.i_p_id)
-        )
-        .update({
-          i_quantity_available: trx.raw("i_quantity_available - ??", [
-            inventoryUpdates.map((update) => update.quantity),
-          ]),
-          i_quantity_sold: trx.raw("i_quantity_sold + ??", [
-            inventoryUpdates.map((update) => update.quantity),
-          ]),
-        });
+      if (inventoryUpdates.length) {
+        // Update inventory in bulk
+        await trx("inventory")
+          .whereIn(
+            "i_p_id",
+            inventoryUpdates.map((update) => update.i_p_id)
+          )
+          .update({
+            i_quantity_available: trx.raw("i_quantity_available - ??", [
+              inventoryUpdates.map((update) => update.quantity),
+            ]),
+            i_quantity_sold: trx.raw("i_quantity_sold + ??", [
+              inventoryUpdates.map((update) => update.quantity),
+            ]),
+          });
+      }
 
-      // Remove cart items in bulk
       if (cart_ids?.length) {
         await trx("cart_items").delete().whereIn("id", cart_ids);
       }

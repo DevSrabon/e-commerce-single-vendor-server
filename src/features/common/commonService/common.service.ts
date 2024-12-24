@@ -284,22 +284,31 @@ class CommonService extends CommonAbstractServices {
         unit_amount: number;
       };
       quantity?: number;
-    }[] = payload.items.map((item) => ({
-      price_data: {
-        currency: item.currency,
-        product_data: {
-          name: item.name,
-          images:
-            // item.image && Array.isArray(item.image) ? item.image : undefined, // Ensure images array is passed
-            [
-              "https://m360ict-ecommerce.s3.ap-south-1.amazonaws.com/memart/product_files/1730567278676-675357971.png",
-            ],
-          description: item.description || undefined,
+    }[] = payload.items.map((item) => {
+      // Ensure item.amount is a valid number
+      const amount = Number(
+        parseFloat((item.amount * 100).toString()).toFixed(2)
+      );
+      if (isNaN(amount)) {
+        throw new Error(`Invalid amount: ${item.amount}`);
+      }
+      return {
+        price_data: {
+          currency: item.currency,
+          product_data: {
+            name: item.name,
+            images:
+              item.image && Array.isArray(item.image) ? item.image : undefined, // Ensure images array is passed
+            // [
+            //   "https://m360ict-ecommerce.s3.ap-south-1.amazonaws.com/memart/product_files/1730567278676-675357971.png",
+            // ],
+            description: item.description || undefined,
+          },
+          unit_amount: amount,
         },
-        unit_amount: item.amount * 100,
-      },
-      quantity: item.quantity,
-    }));
+        quantity: item.quantity,
+      };
+    });
 
     // Optionally add delivery charge
     if (payload.deliveryCharge && payload.deliveryCharge > 0) {
@@ -334,6 +343,9 @@ class CommonService extends CommonAbstractServices {
         quantity: 1,
       });
     }
+
+    console.log({ lineItems: JSON.stringify(lineItems) });
+    // return;
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: lineItems,
@@ -355,7 +367,6 @@ class CommonService extends CommonAbstractServices {
   }
 
   public orderEmailPayload(payload: IOrder) {
-    console.log({ payload: JSON.stringify(payload) });
     return {
       amount: Number(payload.total),
       currency: payload.currency,
@@ -375,7 +386,7 @@ class CommonService extends CommonAbstractServices {
           amount: Number(item.price),
           name: item.product_name_en,
           quantity: item.quantity,
-          image: item.color_images[0],
+          image: item.color_images?.[0],
           color: item.color_name_en,
           size: item.size_name,
           fabric: item.fabric_name_en,

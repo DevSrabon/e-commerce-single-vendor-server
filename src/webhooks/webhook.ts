@@ -15,42 +15,75 @@ class Webhooks extends CommonAbstractServices {
     this.stripeWebhook = this.stripeWebhook.bind(this);
   }
   public async stripeWebhook(req: Request, res: Response) {
-    const event = req.body;
-    const stripe = new Stripe(config.STRIPE_SECRET_KEY);
-    // Handle the event
-    switch (event.type) {
-      case "payment_intent.succeeded":
-        const paymentIntent = event.data.object;
-        console.log(
-          console.table({ paymentIntent: JSON.stringify(paymentIntent) })
-        );
+    try {
+      const event = req.body;
+      const stripe = new Stripe(config.STRIPE_SECRET_KEY);
 
-        const orderId = paymentIntent.metadata.order_id;
-        const order: IOrder = await db("order_view")
-          .select("*")
-          .where({ id: orderId })
-          .first();
-        const paymentIntentCurrency = paymentIntent.currency.toLowerCase();
+      // Check if event data exists
+      if (!event || !event.data || !event.data.object) {
+        console.error("Invalid event data:", event);
+        return res.status(400).send("Invalid event data");
+      }
 
-        if (!order) {
-          try {
-            const refund = await stripe.refunds.create({
-              payment_intent: paymentIntent.id,
-            });
+      // Handle the event
+      switch (event.type) {
+        case "payment_intent.succeeded":
+          const paymentIntent = event.data.object;
 
-            console.log("Refund successful:", refund.id);
-          } catch (error) {
-            console.error("Failed to issue refund:", error);
+          // Ensure paymentIntent exists
+          if (!paymentIntent || !paymentIntent.metadata) {
+            console.error("Invalid payment intent:", paymentIntent);
+            return res.status(400).send("Invalid payment intent");
           }
-          return;
-        } else {
+
+          console.log(
+            console.table({ paymentIntent: JSON.stringify(paymentIntent) })
+          );
+
+          const orderId = paymentIntent.metadata.order_id;
+
+          // Ensure orderId exists
+          if (!orderId) {
+            console.error(
+              "Order ID missing from payment intent:",
+              paymentIntent
+            );
+            return res.status(400).send("Order ID missing");
+          }
+
+          const order: IOrder = await db("order_view")
+            .select("*")
+            .where({ id: orderId })
+            .first();
+
+          // Ensure order exists
+          if (!order) {
+            console.error("Order not found with ID:", orderId);
+
+            try {
+              const refund = await stripe.refunds.create({
+                payment_intent: paymentIntent.id,
+              });
+
+              console.log("Refund successful:", refund.id);
+            } catch (error) {
+              console.error("Failed to issue refund:", error);
+            }
+            return;
+          }
+          console.log("=====================01");
+          const paymentIntentCurrency = paymentIntent.currency.toLowerCase();
+
           const getCurrency = await db("currency").where("status", 1).first();
           let amountInAED = 0;
+
           const paymentIntentAmount = Number(
             paymentIntentCurrency === "gbp"
               ? paymentIntent.amount / 100
               : paymentIntent.amount
           );
+          console.log("=====================2");
+
           if (getCurrency) {
             const aedRate = Number(getCurrency.aed);
             const usdRate = aedRate / Number(getCurrency.usd);
@@ -68,10 +101,10 @@ class Webhooks extends CommonAbstractServices {
           }
 
           // Stripe Charges
-
           const paymentMethod = await stripe.paymentMethods.retrieve(
             paymentIntent.payment_method
           );
+
           const cardType = paymentMethod.card?.brand;
 
           await db("e_order")
@@ -102,39 +135,44 @@ class Webhooks extends CommonAbstractServices {
             )
           );
 
-          // await sendEmail({
-          //   to: order.ec_email,
-          //   subject: "Payment Confirmation",
-          //   body: createPaymentConfirmationEmail({
-          //     amountPaid: paymentIntentAmount,
-          //     currency: paymentIntentCurrency,
-          //     customer: {
-          //       name: order.name,
-          //       email: order.ec_email,
-          //       address: `${order.apt}, ${order.street_address}, ${order.city}, ${order.state}, ${order.c_name_en}, ${order.zip_code}`,
-          //     },
-          //     paymentDate: new Date().toDateString(),
-          //   }),
-          // });
-        }
+          break;
 
-        break;
+        case "payment_intent.payment_failed":
+          const checkoutSession = event.data.object;
 
-      case "payment_intent.payment_failed":
-        const checkoutSession = event.data.object;
-        const checkoutOrderId = checkoutSession.metadata.order_id; // Get order ID from metadata
-        console.log(`Checkout Session Completed. Order ID: ${checkoutOrderId}`);
+          // Ensure checkoutSession exists
+          if (!checkoutSession || !checkoutSession.metadata) {
+            console.error("Invalid checkout session:", checkoutSession);
+            return res.status(400).send("Invalid checkout session");
+          }
 
-        break;
+          const checkoutOrderId = checkoutSession.metadata.order_id; // Get order ID from metadata
 
-      // Other cases...
+          // Ensure checkoutOrderId exists
+          if (!checkoutOrderId) {
+            console.error(
+              "Order ID missing from checkout session:",
+              checkoutSession
+            );
+            return res.status(400).send("Order ID missing");
+          }
 
-      default:
-        console.log(`Unhandled event type ${event.type}`);
+          console.log(
+            `Checkout Session Completed. Order ID: ${checkoutOrderId}`
+          );
+
+          break;
+
+        default:
+          console.log(`Unhandled event type ${event.type}`);
+      }
+
+      // Respond to Stripe that the webhook was received successfully
+      res.status(200).send();
+    } catch (error) {
+      console.log("Payment Failed", error);
+      res.status(500).send("Payment Failed");
     }
-
-    // Respond to Stripe that the webhook was received successfully
-    res.status(200).send();
   }
 }
 

@@ -32,7 +32,7 @@ class EcommCartService extends EcommAbstractServices {
 
       const checkColor = await trx("p_color")
         .select("id")
-        .where("id", p_color_id)
+        .where("color_id", p_color_id)
         .andWhere("p_id", p_id)
         .first();
       if (!checkColor) {
