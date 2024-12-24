@@ -35,6 +35,9 @@ interface IOrderProductDetails {
   quantity: number;
   v_id: number;
   p_image: string[];
+  color_name?: string;
+  size_name?: string;
+  fabric_name?: string;
   size_id: number;
   p_color_id: number;
 }
@@ -149,6 +152,9 @@ class EcommOrderService extends EcommAbstractServices {
             (img: { image: string }) =>
               `${config.AWS_S3_BASE_URL}${ROOT_FOLDER}/${img.image}`
           ),
+          color_name: orderProduct.color_name_en,
+          size_name: orderProduct.size_name,
+          fabric_name: orderProduct.fabric_name_en,
           v_id: product.v_id as number,
           p_color_id: product.p_color_id,
           size_id: product.size_id,
@@ -240,10 +246,12 @@ class EcommOrderService extends EcommAbstractServices {
       });
 
       // Add order details in bulk
-      const orderDetails = productDetails.map(({ p_image, ...item }) => ({
-        ...item,
-        eo_id: orderId,
-      }));
+      const orderDetails = productDetails.map(
+        ({ p_image, color_name, size_name, fabric_name, ...item }) => ({
+          ...item,
+          eo_id: orderId,
+        })
+      );
       await trx("e_order_details").insert(orderDetails);
 
       // Prepare payment address
@@ -255,6 +263,7 @@ class EcommOrderService extends EcommAbstractServices {
           name: item.ep_name_en,
           amount: item.price,
           currency,
+          description: `${item.color_name} color, ${item.size_name} size, and ${item.fabric_name} fabric - a perfect combination of style and comfort.`,
           image: item.p_image,
           quantity: item.quantity,
         })),
