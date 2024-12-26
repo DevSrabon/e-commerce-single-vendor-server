@@ -26,7 +26,7 @@ export const createPaymentConfirmationEmail = (payload: IOrderStatus) => {
             : ""
         }
         <div>
-          <h3 style="margin: 0;">${item.fabric_name_en}</h3>
+          <h3 style="margin: 0;">${item.name}</h3>
           <p style="margin: 5px 0;">Price: ${currency.toUpperCase()} ${item.amount.toFixed(
         2
       )}</p>
