@@ -147,7 +147,7 @@ class EcommCartService extends EcommAbstractServices {
         "p.p_name_en",
         "p.p_name_ar",
         "p.p_slug",
-        "vp.id",
+        "vp.id as v_id",
         "ci.p_color_id",
         "ci.size_id",
         "ci.quantity",
