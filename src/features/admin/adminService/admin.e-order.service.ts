@@ -35,7 +35,9 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
         "eo.id",
         "eo.order_no",
         "eo.status",
-        "eo.grand_total",
+        // "eo.currency",
+        // "eo.grand_total",
+        this.db.raw(`CONCAT(eo.grand_total, ' ', eo.currency) as grand_total`),
         "eo.created_at",
         "eo.customer_name",
         "eo.customer_email",
@@ -85,7 +87,10 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
   public async getSingleEorderService(req: Request) {
     const { id } = req.params;
 
-    const data = await this.db("order_view").where("id", id).first();
+    const data = await this.db("order_view")
+      .select("*")
+      .where("id", id)
+      .first();
 
     if (data) {
       return {

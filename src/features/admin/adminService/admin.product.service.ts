@@ -463,12 +463,41 @@ class AdminProductService extends AdminAbstractServices {
       const files = (req.files as Express.Multer.File[]) || [];
 
       const newImage: { pi_image: string; pi_p_id: number | string }[] = [];
-
-      files.forEach((item) => {
+      const oldColorImage: {
+        p_id: number | string;
+        p_color_id: number;
+        image: string;
+      }[] = [];
+      const checkProductColor = await trx("p_color")
+        .select("id", "color_id")
+        .where({
+          p_id: id,
+        });
+      files.forEach((item, index) => {
         if (item.fieldname === "new_image") {
           newImage.push({ pi_image: item.filename, pi_p_id: id });
         }
+        if (item.fieldname.startsWith("old_color_new_image")) {
+          if (!checkProductColor.length) {
+            throw new CustomError("Color not found for new New Image", 412);
+          }
+
+          checkProductColor.forEach((color) => {
+            const colorIdFromFieldname = item.fieldname.split("_").pop();
+
+            if (parseInt(colorIdFromFieldname as string) === color.color_id) {
+              oldColorImage.push({
+                p_color_id: color.id,
+                p_id: id,
+                image: item.filename,
+              });
+            }
+          });
+        }
       });
+      if (oldColorImage.length) {
+        await trx("color_image").insert(oldColorImage);
+      }
       if (quantity) {
         await trx("inventory")
           .update({ i_quantity_available: quantity })
