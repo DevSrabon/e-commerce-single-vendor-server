@@ -186,7 +186,10 @@ class EcommCartService extends EcommAbstractServices {
               END
           END, 2
         ) AS special_price
-      `)
+      `),
+        this.db.raw(
+          `(SELECT pi_image AS image FROM product_image WHERE product_image.pi_p_id = p.p_id LIMIT 1) as product_image`
+        )
       )
       .join("product as p", "p.p_id", "ci.p_id")
       .join("p_color as pc", "pc.id", "ci.p_color_id")
