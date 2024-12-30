@@ -253,24 +253,26 @@ class CommonService extends CommonAbstractServices {
     let coupon;
 
     if (payload.discount) {
-      if (payload.discount > 0 && payload.discount <= 100) {
-        coupon = await stripe.coupons.create({
-          percent_off:
-            payload.currency.toLowerCase() === "aed"
-              ? payload.discount
-              : payload.discount,
-          duration: "once",
-        });
-      } else if (payload.discount > 100) {
-        coupon = await stripe.coupons.create({
-          amount_off:
-            payload.currency.toLowerCase() === "aed"
-              ? payload.discount
-              : payload.discount * 100,
-          currency: payload.currency,
-          duration: "once",
-        });
-      }
+      // if (payload.discount > 0 && payload.discount <= 100) {
+      //   coupon = await stripe.coupons.create({
+      //     percent_off: +parseFloat((payload.discount / 100).toString()).toFixed(
+      //       2
+      //     ),
+      //     // payload.currency.toLowerCase() === "aed"
+      //     //   ? payload.discount
+      //     //   : payload.discount,
+      //     duration: "once",
+      //   });
+      // }
+
+      coupon = await stripe.coupons.create({
+        amount_off: +parseFloat((payload.discount * 100).toString()).toFixed(2),
+        // payload.currency.toLowerCase() === "aed"
+        //   ? payload.discount
+        //   : payload.discount * 100,
+        currency: payload.currency,
+        duration: "once",
+      });
     }
     // coupon = await stripe.coupons.create({
     //   amount_off: 10 * 100,

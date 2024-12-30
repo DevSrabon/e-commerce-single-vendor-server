@@ -202,22 +202,43 @@ class EcommOrderService extends EcommAbstractServices {
       let discount = 0;
       if (coupon) {
         const getCoupon = await trx("coupons")
-          .select("discount", "discount_type")
+          .select("discount", "discount_type", "max_use")
           .where("id", coupon)
+          .andWhere("status", 1)
+
+          .andWhereRaw("CURRENT_DATE BETWEEN ?? AND ??", [
+            "start_date",
+            "end_date",
+          ])
           .first();
         if (!getCoupon) {
           throw new CustomError(
-            "Invalid coupon code",
+            "Invalid or Expired coupon code",
             412,
             "Unprocessable Entity"
           );
         }
+        const couponUsed = await this.db("coupon_applied")
+          .where({ coupon_id: coupon })
+          .andWhere("ec_id", req.customer.ec_id)
+          .count("id as total");
 
+        if (couponUsed[0].total >= getCoupon.max_use) {
+          return {
+            success: false,
+            message: "Coupon has been already used",
+          };
+        }
+        await trx("coupon_applied").insert({
+          ec_id,
+          coupon_id: coupon,
+        });
         if (getCoupon.discount_type === "percentage") {
           discount = (grand_total * Number(getCoupon.discount)) / 100;
         } else if (getCoupon.discount_type === "fixed") {
           discount = Number(getCoupon.discount);
         }
+
         grand_total -= discount;
       }
 

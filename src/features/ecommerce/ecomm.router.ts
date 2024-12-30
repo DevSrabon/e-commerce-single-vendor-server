@@ -2,6 +2,7 @@ import { Router } from "express";
 import EcommAuthRouter from "./ecommRouter/ecomm.auth.router";
 import EcommCartRouter from "./ecommRouter/ecomm.cart.router";
 import EcommCategoryRouter from "./ecommRouter/ecomm.category.router";
+import { EccomCouponRouter } from "./ecommRouter/ecomm.coupon.router";
 import EcommCustomerRouter from "./ecommRouter/ecomm.customer.router";
 import EcommNotificationRouter from "./ecommRouter/ecomm.notification.router";
 import EcommOrderRouter from "./ecommRouter/ecomm.order.router";
@@ -20,6 +21,7 @@ class EcommRouter {
   private categoryRouter = new EcommCategoryRouter();
   private cartRouter = new EcommCartRouter();
   private ecommNotification = new EcommNotificationRouter();
+  private EccomCouponRouter = new EccomCouponRouter();
   constructor() {
     this.callRouter();
   }
@@ -51,6 +53,9 @@ class EcommRouter {
 
     // Notification Router
     this.EcommRouter.use("/notification", this.ecommNotification.router);
+
+    // Coupon Router
+    this.EcommRouter.use("/coupon", this.EccomCouponRouter.router);
   }
 }
 export default EcommRouter;

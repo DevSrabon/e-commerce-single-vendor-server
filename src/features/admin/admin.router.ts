@@ -13,7 +13,7 @@ import AdminWareHouseRouter from "./adminRouter/admin.warehouse.router";
 // import AdminAccountsRouter from './adminRouter/admin.accounts.router';
 import AdminAbstractRouter from "./adminAbstracts/admin.abstract.router";
 import AdminColorRouter from "./adminRouter/admin.color.router";
-import AdminCouponRouter from "./adminRouter/admin.coupon.controller";
+import AdminCouponRouter from "./adminRouter/admin.coupon.router";
 import AdminCurrencyRouter from "./adminRouter/admin.currency.router";
 import AdminDashboardRouter from "./adminRouter/admin.dashboard.router";
 import AdminInventoryRouter from "./adminRouter/admin.inventory.router";

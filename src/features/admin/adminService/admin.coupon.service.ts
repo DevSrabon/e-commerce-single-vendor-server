@@ -6,38 +6,63 @@ class AdminCouponService extends AdminAbstractServices {
     super();
   }
   public async createCoupon(req: Request) {
-    const { au_id } = req.user;
-    const { coupon_code, ...rest } = req.body;
+    return await this.db.transaction(async (trx) => {
+      const { au_id } = req.user;
+      const { coupon_code, p_ids, ...rest } = req.body;
 
-    const checkCoupon = await this.db("coupons")
-      .select("id")
-      .where({ coupon_code });
-    if (checkCoupon.length) {
-      return {
-        success: false,
-        message: "coupon code already exits",
-      };
-    }
-    const insertCoupon = await this.db("coupons").insert({
-      coupon_code,
-      created_by: au_id,
-      ...rest,
-    });
-    if (insertCoupon.length) {
-      await new CommonService().createAuditTrailService({
-        at_admin_id: au_id,
-        at_details: `An coupon has been created, ${coupon_code}`,
+      const checkCoupon = await this.db("coupons")
+        .select("id")
+        .where({ coupon_code })
+        .andWhereRaw("CURRENT_DATE BETWEEN ?? AND ??", [
+          "start_date",
+          "end_date",
+        ]);
+      if (checkCoupon.length) {
+        return {
+          success: false,
+          message: "coupon code or date range already exists",
+        };
+      }
+
+      const insertCoupon = await this.db("coupons").insert({
+        coupon_code,
+        created_by: au_id,
+        ...rest,
       });
-      return {
-        success: true,
-        message: "Coupon has been created successfully!",
-      };
-    } else {
-      return {
-        success: false,
-        message: "Coupon creation has been failed!",
-      };
-    }
+      if (p_ids.length && rest.coupon_type === "specific") {
+        const checkProduct = await this.db("product")
+          .select("p_id")
+          .whereIn("p_id", p_ids);
+        if (checkProduct?.length !== p_ids.length) {
+          return {
+            success: false,
+            message: "Products are not found",
+          };
+        }
+        const couponProductPayload = p_ids.map((p_id: number) => {
+          return {
+            coupon_id: insertCoupon[0],
+            p_id,
+          };
+        });
+        await this.db("coupon_product").insert(couponProductPayload);
+      }
+      if (insertCoupon.length) {
+        await new CommonService().createAuditTrailService({
+          at_admin_id: au_id,
+          at_details: `An coupon has been created, ${coupon_code}`,
+        });
+        return {
+          success: true,
+          message: "Coupon has been created successfully!",
+        };
+      } else {
+        return {
+          success: false,
+          message: "Coupon creation has been failed!",
+        };
+      }
+    });
   }
 
   public async getAll(req: Request) {
@@ -152,6 +177,12 @@ class AdminCouponService extends AdminAbstractServices {
     }
 
     await this.db("coupons").where({ id }).delete();
+    const checkCouponProduct = await this.db("coupon_product")
+      .select("coupon_id")
+      .where({ coupon_id: id });
+    if (checkCouponProduct.length) {
+      await this.db("coupon_product").where({ coupon_id: id }).delete();
+    }
     await new CommonService().createAuditTrailService({
       at_admin_id: req.user.au_id,
       at_details: `Coupon has been deleted: ${existingCoupon.coupon_code}`,
