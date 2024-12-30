@@ -60,10 +60,10 @@ class App {
 
     // Apply rate limiting to avoid brute-force attacks
     const limiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 200, // limit each IP to 100 requests per windowMs
+      windowMs: 5 * 60 * 1000, // 15 minutes
+      max: 1000, // limit each IP to 100 requests per windowMs
       message:
-        "Too many requests from this IP, please try again after 15 minutes.",
+        "Too many requests from this IP, please try again after 5 minutes.",
     });
     this.app.use(limiter);
 
