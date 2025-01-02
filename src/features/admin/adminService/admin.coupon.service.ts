@@ -111,10 +111,24 @@ class AdminCouponService extends AdminAbstractServices {
         message: "Coupon not found",
       };
     }
+    const products = await this.db("coupon_product as cp")
+      .select(
+        "p.p_id",
+        "p.p_name_en",
+        "p.p_name_ar",
+        "p.categories",
+        "p.colors",
+        "p.sizes",
+        "p.p_images",
+        "p.variants"
+      )
+      .join("product_view as p", "p.p_id", "cp.p_id")
+      .where("coupon_id", id);
     return {
       success: true,
       data: {
         ...coupon,
+        products,
       },
     };
   }
