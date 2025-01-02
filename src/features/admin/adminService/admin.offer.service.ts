@@ -329,9 +329,9 @@ class AdminOfferService extends AdminAbstractServices {
   }
 
   public async delete(req: Request) {
-    const { id: offer_id } = req.params;
+    const { id } = req.params;
 
-    const existingOffer = await this.db("offers").where({ offer_id }).first();
+    const existingOffer = await this.db("offers").where({ id }).first();
 
     if (!existingOffer) {
       return {
@@ -341,8 +341,8 @@ class AdminOfferService extends AdminAbstractServices {
     }
 
     return await this.db.transaction(async (trx) => {
-      await trx("offer_products").where({ offer_id }).delete();
-      await trx("offers").where({ offer_id }).delete();
+      await trx("offer_products").where({ offer_id: id }).delete();
+      await trx("offers").where({ id }).delete();
 
       await new CommonService().createAuditTrailService({
         at_admin_id: req.user.au_id,

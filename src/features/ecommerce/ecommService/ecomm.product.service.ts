@@ -399,8 +399,6 @@ class EcommProductService extends EcommAbstractServices {
         }
         if (featured) {
           qb.andWhere("p.is_featured", 1);
-        } else {
-          qb.andWhere("p.is_featured", 0);
         }
 
         if (minPrice || maxPrice) {
@@ -459,8 +457,6 @@ class EcommProductService extends EcommAbstractServices {
         }
         if (featured) {
           qb.andWhere("p.is_featured", 1);
-        } else {
-          qb.andWhere("p.is_featured", 0);
         }
 
         if (minPrice || maxPrice) {
