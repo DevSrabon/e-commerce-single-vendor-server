@@ -386,6 +386,9 @@ class EcommOrderService extends EcommAbstractServices {
     const products = await this.db("order_details_view as eod")
       .select("*")
       .where("eod.eo_id", order[0].id);
+    const tracking = await this.db("e_order_tracking")
+      .select("*")
+      .where("eo_id", order[0].id);
 
     return {
       success: true,
@@ -393,6 +396,7 @@ class EcommOrderService extends EcommAbstractServices {
         ...rest,
         address: address[0],
         products,
+        tracking,
       },
     };
   }
