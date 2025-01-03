@@ -135,7 +135,7 @@ class AdminCouponService extends AdminAbstractServices {
 
   public async updateSingle(req: Request) {
     const { id } = req.params;
-    const { ...rest } = req.body;
+    const { add, remove, ...rest } = req.body;
 
     const existingCoupon = await this.db("coupons").where({ id }).first();
     if (!existingCoupon) {
@@ -158,6 +158,30 @@ class AdminCouponService extends AdminAbstractServices {
           message: "Coupon code already exists",
         };
       }
+    }
+    if (Array.isArray(add) && add.length) {
+      const checkProduct = await this.db("product")
+        .select("p_id")
+        .whereIn("p_id", add);
+      if (checkProduct?.length !== add.length) {
+        return {
+          success: false,
+          message: "Products are not found",
+        };
+      }
+      const couponProductPayload = add.map((p_id: number) => {
+        return {
+          coupon_id: id,
+          p_id,
+        };
+      });
+      await this.db("coupon_product").insert(couponProductPayload);
+    }
+    if (Array.isArray(remove) && remove.length) {
+      await this.db("coupon_product")
+        .where("coupon_id", id)
+        .whereIn("p_id", remove)
+        .delete();
     }
 
     await this.db("coupons")

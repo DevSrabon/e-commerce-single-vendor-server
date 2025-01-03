@@ -71,7 +71,7 @@ class Webhooks extends CommonAbstractServices {
             }
             return;
           }
-          console.log("=====================01");
+
           const paymentIntentCurrency = paymentIntent.currency.toLowerCase();
 
           const getCurrency = await db("currency").where("status", 1).first();
@@ -82,7 +82,6 @@ class Webhooks extends CommonAbstractServices {
               ? paymentIntent.amount / 100
               : paymentIntent.amount
           );
-          console.log("=====================2");
 
           if (getCurrency) {
             const aedRate = Number(getCurrency.aed);

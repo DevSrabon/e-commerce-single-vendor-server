@@ -19,7 +19,6 @@ const callProductStoredProcedure = async (
   p_color_id: number,
   size_id: number
 ) => {
-  console.log({ procedureName, product_id, v_id, p_color_id, size_id });
   try {
     const result = await db.raw(`CALL ${procedureName}(?, ?, ?, ?)`, [
       product_id,

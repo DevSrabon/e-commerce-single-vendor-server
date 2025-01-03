@@ -154,6 +154,9 @@ class AdminOfferService extends AdminAbstractServices {
         "p.p_name_ar",
         "p.p_status",
         "p.categories",
+        "opd.op_discount",
+        "opd.op_discount_type",
+        "opd.status",
         this.db.raw(
           "JSON_ARRAY((JSON_EXTRACT(p_images, '$[0].image'))) AS p_image"
         ),
@@ -235,11 +238,11 @@ class AdminOfferService extends AdminAbstractServices {
       if (offer_slug) {
         rest.offer_slug = offer_slug;
       }
-
-      rest.offer_image = files.length
-        ? files[0].filename
-        : existingOffer.offer_image;
     }
+
+    rest.offer_image = files.length
+      ? files[0].filename
+      : existingOffer.offer_image;
 
     return await this.db.transaction(async (trx) => {
       if (Object.keys(rest).length) {
