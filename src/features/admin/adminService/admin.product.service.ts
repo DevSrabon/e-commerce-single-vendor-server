@@ -8,7 +8,7 @@ interface IProductVariants {
   price: number;
   discount: number;
   discount_type: "fixed" | "percentage";
-  is_default?: boolean;
+  sku: string;
 }
 interface IColor {
   id: number;
@@ -48,6 +48,10 @@ class AdminProductService extends AdminAbstractServices {
       p_tags,
       p_details_en,
       p_details_ar,
+      seo_title,
+      seo_description,
+      seo_keywords,
+
       category,
       colors,
       sizes,
@@ -123,6 +127,9 @@ class AdminProductService extends AdminAbstractServices {
         p_details_en,
         p_details_ar,
         stock_alert,
+        seo_title,
+        seo_description,
+        seo_keywords,
         is_featured,
       });
 
@@ -285,11 +292,30 @@ class AdminProductService extends AdminAbstractServices {
               );
             }
           }
+          if (!el.sku) {
+            throw new CustomError(
+              "SKU is required",
+              412,
+              "Unprocessable Entity"
+            );
+          }
+          const checkSKU = await trx("variant_product")
+            .select("id")
+            .where({ sku: el.sku })
+            .first();
+          if (checkSKU) {
+            throw new CustomError(
+              "SKU already exists",
+              412,
+              "Unprocessable Entity"
+            );
+          }
           return {
             p_id: productId,
             fabric_id: el.id,
             price: el.price,
             discount: el.discount,
+            sku: el.sku,
             discount_type: el.discount_type,
           };
         })
@@ -298,14 +324,14 @@ class AdminProductService extends AdminAbstractServices {
         await trx("variant_product").insert(variantInsertedData);
       }
 
-      const barcode = new Lib().generateBarCode(productId);
-      const sku = new Lib().generateSKU(productId, p_name_en);
-      await trx("product")
-        .update({
-          sku,
-          barcode,
-        })
-        .where({ p_id: productId });
+      // const barcode = new Lib().generateBarCode(productId);
+      // const sku = new Lib().generateSKU(productId, p_name_en);
+      // await trx("product")
+      //   .update({
+      //     sku,
+      //     barcode,
+      //   })
+      //   .where({ p_id: productId });
 
       return {
         success: true,
@@ -546,7 +572,19 @@ class AdminProductService extends AdminAbstractServices {
         if (checkFabric.length !== addedVariants.length) {
           throw new Error("Invalid fabric id");
         }
-
+        for (const el of addedVariants) {
+          const checkSKU = await trx("variant_product")
+            .select("id")
+            .where({ sku: el.sku })
+            .first();
+          if (checkSKU) {
+            throw new CustomError(
+              "SKU already exists",
+              412,
+              "Unprocessable Entity"
+            );
+          }
+        }
         const fabricIds = addedVariants.map((el: IProductVariants) => el.id);
 
         const checkVariant = await trx("variant_product")
@@ -568,14 +606,26 @@ class AdminProductService extends AdminAbstractServices {
       if (editVariants.length) {
         for (const el of editVariants) {
           const checkVariant = await trx("variant_product")
-            .select("id")
+            .select("id", "sku")
             .where({ id: el.id })
             .andWhere("p_id", id);
 
           if (!checkVariant.length) {
             throw new Error("Invalid variant id");
           }
-
+          if (el.sku !== checkVariant[0].sku) {
+            const checkSKU = await trx("variant_product")
+              .select("id")
+              .where({ sku: el.sku })
+              .first();
+            if (checkSKU) {
+              throw new CustomError(
+                "SKU already exists",
+                412,
+                "Unprocessable Entity"
+              );
+            }
+          }
           const checkFabric = await trx("fabric")
             .select("id")
             .where({ id: el.fabric_id });
@@ -885,7 +935,7 @@ class AdminProductService extends AdminAbstractServices {
 
     const files = (req.files as Express.Multer.File[]) || [];
 
-    if (!files.length && !cate_parent_id) {
+    if (!cate_parent_id && (!files || !files.length)) {
       return {
         success: false,
         message: "You must provide category image",
@@ -897,7 +947,7 @@ class AdminProductService extends AdminAbstractServices {
       cate_parent_id,
       cate_name_ar,
       cate_slug: Lib.stringToSlug(cate_name_en),
-      cate_image: files[0].filename,
+      cate_image: files[0]?.filename,
     });
 
     if (res.length) {
@@ -909,7 +959,7 @@ class AdminProductService extends AdminAbstractServices {
           cate_parent_id,
           cate_name_ar,
           cate_slug: Lib.stringToSlug(cate_name_en),
-          cate_image: files[0].filename,
+          cate_image: files[0]?.filename,
         },
         message: "Category has been created",
       };

@@ -323,7 +323,9 @@ class AdminOfferService extends AdminAbstractServices {
           req.body
         )}`,
       });
-
+      if (files.length && existingOffer.offer_image) {
+        await this.manageFile.deleteFromStorage(existingOffer.offer_image);
+      }
       return {
         success: true,
         message: "Offer updated successfully",

@@ -18,6 +18,9 @@ class AdminProductValidator {
       body("is_featured", "Provide is featured").isIn(["0", "1"]).exists(),
       body("colors", "Provide colors array").exists(),
       body("sizes", "Provide sizes array").exists(),
+      body("seo_title", "Provide seo_title").isString().optional(),
+      body("seo_description", "Provide seo_description").isString().optional(),
+      body("seo_keywords", "Provide seo_keywords").isString().optional(),
       body("variants", "Provide variants array").exists(),
       body("p_details_en", "Provide product details in english")
         .exists({ checkFalsy: false })

@@ -218,16 +218,28 @@ class EcommOrderService extends EcommAbstractServices {
             "Unprocessable Entity"
           );
         }
+        const maxUse = await this.db("coupon_applied")
+          .select(this.db.raw(`SUM(count) as total_use`))
+          .where({ coupon_id: coupon })
+          .first();
+        if (maxUse.total_use > getCoupon.max_use) {
+          throw new CustomError(
+            "Coupon limit has been reached",
+            412,
+            "Unprocessable Entity"
+          );
+        }
         const couponUsed = await this.db("coupon_applied")
           .where({ coupon_id: coupon })
           .andWhere("ec_id", req.customer.ec_id)
           .count("id as total");
 
-        if (couponUsed[0].total >= getCoupon.max_use) {
-          return {
-            success: false,
-            message: "Coupon has been already used",
-          };
+        if (couponUsed[0].total > getCoupon.per_customer_use) {
+          throw new CustomError(
+            "Coupon limit has been reached",
+            412,
+            "Unprocessable Entity"
+          );
         }
         await trx("coupon_applied").insert({
           ec_id,

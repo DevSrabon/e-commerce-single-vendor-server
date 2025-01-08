@@ -8,8 +8,6 @@ class EcommCouponService extends EcommAbstractServices {
 
   public async getCoupon(req: Request) {
     const { p_id } = req.query;
-
-    // Initialize the query to always include overall coupons
     let query = this.db("coupons as c")
       .leftJoin("coupon_product as cp", "c.id", "=", "cp.coupon_id")
       .where("c.status", 1)
@@ -17,20 +15,18 @@ class EcommCouponService extends EcommAbstractServices {
         "c.start_date",
         "c.end_date",
       ])
-      .select("c.*") // Select all columns from coupons table with alias 'c'
+      .select("c.*")
       .orderBy("c.id", "desc")
       .limit(5);
 
-    // Always include overall coupons, and if p_id is provided, include specific ones as well
     if (p_id) {
       query = query.andWhere(function () {
-        this.where("c.coupon_type", "overall").orWhere("cp.p_id", p_id); // Include both overall and specific coupons for given p_id
+        this.where("c.coupon_type", "overall").orWhere("cp.p_id", p_id);
       });
     } else {
-      query = query.where("c.coupon_type", "overall"); // If no p_id, only include overall coupons
+      query = query.where("c.coupon_type", "overall");
     }
 
-    // Execute the query
     const data = await query;
 
     return {
@@ -45,11 +41,22 @@ class EcommCouponService extends EcommAbstractServices {
     const coupon = await this.db("coupons")
       .where({ id })
       .andWhereRaw("CURRENT_DATE BETWEEN ?? AND ??", ["start_date", "end_date"])
+      .andWhere("status", 1)
       .first();
     if (!coupon) {
       return {
         success: false,
         message: "Coupon not found",
+      };
+    }
+    const maxUse = await this.db("coupon_applied")
+      .select(this.db.raw(`SUM(count) as total_use`))
+      .where({ coupon_id: id })
+      .first();
+    if (maxUse.total_use >= coupon.max_use) {
+      return {
+        success: false,
+        message: "Coupon limit has been reached",
       };
     }
     const couponUsed = await this.db("coupon_applied")

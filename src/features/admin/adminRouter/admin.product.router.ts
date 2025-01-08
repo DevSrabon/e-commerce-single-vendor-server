@@ -19,6 +19,8 @@ class AdminProductRouter extends AdminAbstractRouter {
       )
       .get(this.productController.getProductController);
 
+    this.router.route("/home").get(this.productController.getHomeData);
+
     // get attribute by single product
     this.router
       .route("/attributes/by/:productId")

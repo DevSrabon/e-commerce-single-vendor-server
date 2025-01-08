@@ -24,6 +24,13 @@ class EcommProductController extends EcommAbstractController {
       res.status(200).json(data);
     }
   );
+  public getHomeData = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.ecommProductService.getHomeData(req);
+
+      res.status(200).json(data);
+    }
+  );
 
   // Get All Attributes
   public getAllAttributes = this.asyncWrapper.wrap(

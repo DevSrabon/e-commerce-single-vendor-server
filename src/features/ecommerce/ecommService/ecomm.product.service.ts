@@ -523,6 +523,65 @@ class EcommProductService extends EcommAbstractServices {
     };
   }
 
+  public async getHomeData(req: Request) {
+    const { limit, skip, sortBy, sortOrder } = req.query;
+    const homeCategories = await this.db("category")
+      .select("cate_id", "cate_name_en", "cate_name_ar", "cate_slug")
+      .where("cate_home", 1);
+    // Initialize an array to hold the category-wise data
+    const categoryData = await Promise.all(
+      homeCategories.map(async (category: any) => {
+        const relatedCategories = await this.db("category")
+          .select("cate_id")
+          .where("cate_id", category.cate_id)
+          .orWhere("cate_parent_id", category.cate_id);
+
+        const categoryIds = relatedCategories.map((cat: any) => cat.cate_id);
+
+        const products = await this.db("product_view as pv")
+          .select(
+            "pv.p_id",
+            "pv.p_name_en",
+            "pv.p_name_ar",
+            "pv.p_slug",
+            "pv.p_tags",
+            "pv.is_featured",
+            "pv.stock_alert",
+            "pv.avg_rating",
+            "pv.rating_count",
+            "pv.offer_details",
+            "pv.available_stock",
+            "pv.total_sold",
+            "pv.base_price",
+            "pv.base_special_price",
+            "pv.all_images",
+            "pv.sizes",
+            "pv.p_images"
+          )
+          .join("product_category as pc", "pc.pc_p_id", "pv.p_id")
+          .whereIn("pc.pc_cate_id", categoryIds)
+          .orderBy(
+            (sortBy as string) || "p_created_at",
+            sortOrder === "asc" ? "asc" : "desc"
+          )
+          .limit(Number(limit) || 20)
+          .offset(Number(skip) || 0);
+
+        return {
+          ...category,
+          products,
+        };
+      })
+    );
+
+    const bestSelling = await this.db("product_view as pv");
+    return {
+      success: true,
+      message: "Home data fetched successfully",
+      data: categoryData,
+    };
+  }
+
   // get Single product service
   public async getEcommSingleProduct(product: string) {
     const data = await this.db("product_view")

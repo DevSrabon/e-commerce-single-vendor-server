@@ -18,6 +18,8 @@ class EcommProductRouter extends EcommAbstractRouter {
         this.ecommProductController.getEcommProductController
       );
 
+    this.router.route("/home").get(this.ecommProductController.getHomeData);
+
     // Get All Offer Products
     this.router
       .route("/offer-products")

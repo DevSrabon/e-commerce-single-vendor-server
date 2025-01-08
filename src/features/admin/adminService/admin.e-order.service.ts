@@ -198,6 +198,7 @@ class AdminEcommerceOrderService extends AdminAbstractServices {
   ) {
     return await this.db.transaction(async (trx) => {
       const { status, remarks } = req.body;
+      console.log({ status, remarks });
       const { orderId } = req.params;
       const orderDetails: IOrder = await this.db("order_view")
         .select("*")
