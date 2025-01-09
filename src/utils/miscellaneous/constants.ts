@@ -13,6 +13,7 @@ export const origin: string[] = [
   "https://saba-al-wadu-ecommerce-client.vercel.app",
   "https://www.saba-al-wadu-ecommerce-client.vercel.app",
   "https://saba-al-wadu.netlify.app",
+  "https://v2-saba-al-wadu-ecommerce-client.vercel.app",
 ];
 
 export const allowedImageTypes: string[] = [

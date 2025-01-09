@@ -27,6 +27,7 @@ class EcommProductService extends EcommAbstractServices {
       data: data,
     };
   }
+
   public async getBanners(req: Request) {
     const { limit = 10, skip = 0 } = req.query;
     const currentDate = new Date().toISOString().split("T")[0];
@@ -247,154 +248,154 @@ class EcommProductService extends EcommAbstractServices {
     };
   }
 
-  // Get Best selling products
-  public async getBestSellingProducts(req: Request) {
-    const {
-      limit,
-      skip,
-      name,
-      tag,
-      minPrice,
-      maxPrice,
-      colors,
-      sizes,
-      fabrics,
-      sortBy = "total_sold",
-      sortOrder = "desc",
-    } = req.query;
-    const parsedColor = colors ? JSON.parse(colors as string) : [];
-    const parsedSize = sizes ? JSON.parse(sizes as string) : [];
-    const parsedFabrics = fabrics ? JSON.parse(fabrics as string) : [];
-    const data = await this.db("product_view as p")
-      .select(
-        "p.p_id",
-        "p.p_name_en",
-        "p.p_name_ar",
-        "p.p_details_en as p_details_en",
-        "p.p_details_ar as p_details_ar",
-        "p.available_stock",
-        "p.base_price",
-        "p.base_special_price",
-        "p.all_images",
-        this.db.raw("SUM(op.quantity) as total_sold") // Aggregate total sold
-      )
-      .join("e_order_details as op", "p.p_id", "op.ep_id")
-      .where((qb) => {
-        qb.andWhere("p.p_status", 1);
-        if (name) {
-          qb.andWhere("p.p_name_en", "like", `%${name}%`).orWhere(
-            "p.p_name_ar",
-            "like",
-            `%${name}%`
-          );
-        }
-        if (tag) {
-          qb.andWhere("p.p_tags", "like", `%${tag}%`);
-        }
-        if (minPrice || maxPrice) {
-          if (minPrice && maxPrice) {
-            qb.andWhereBetween("p.base_special_price", [minPrice, maxPrice]);
-          }
-          if (minPrice && !maxPrice) {
-            qb.andWhere("p.base_special_price", ">=", minPrice);
-          }
-          if (!minPrice && maxPrice) {
-            qb.andWhere("p.base_special_price", "<=", maxPrice);
-          }
-        }
+  // // Get Best selling products
+  // public async getBestSellingProducts(req: Request) {
+  //   const {
+  //     limit,
+  //     skip,
+  //     name,
+  //     tag,
+  //     minPrice,
+  //     maxPrice,
+  //     colors,
+  //     sizes,
+  //     fabrics,
+  //     sortBy = "total_sold",
+  //     sortOrder = "desc",
+  //   } = req.query;
+  //   const parsedColor = colors ? JSON.parse(colors as string) : [];
+  //   const parsedSize = sizes ? JSON.parse(sizes as string) : [];
+  //   const parsedFabrics = fabrics ? JSON.parse(fabrics as string) : [];
+  //   const data = await this.db("product_view as p")
+  //     .select(
+  //       "p.p_id",
+  //       "p.p_name_en",
+  //       "p.p_name_ar",
+  //       "p.p_details_en as p_details_en",
+  //       "p.p_details_ar as p_details_ar",
+  //       "p.available_stock",
+  //       "p.base_price",
+  //       "p.base_special_price",
+  //       "p.all_images",
+  //       this.db.raw("SUM(op.quantity) as total_sold") // Aggregate total sold
+  //     )
+  //     .join("e_order_details as op", "p.p_id", "op.ep_id")
+  //     .where((qb) => {
+  //       qb.andWhere("p.p_status", 1);
+  //       if (name) {
+  //         qb.andWhere("p.p_name_en", "like", `%${name}%`).orWhere(
+  //           "p.p_name_ar",
+  //           "like",
+  //           `%${name}%`
+  //         );
+  //       }
+  //       if (tag) {
+  //         qb.andWhere("p.p_tags", "like", `%${tag}%`);
+  //       }
+  //       if (minPrice || maxPrice) {
+  //         if (minPrice && maxPrice) {
+  //           qb.andWhereBetween("p.base_special_price", [minPrice, maxPrice]);
+  //         }
+  //         if (minPrice && !maxPrice) {
+  //           qb.andWhere("p.base_special_price", ">=", minPrice);
+  //         }
+  //         if (!minPrice && maxPrice) {
+  //           qb.andWhere("p.base_special_price", "<=", maxPrice);
+  //         }
+  //       }
 
-        if (Array.isArray(parsedColor) && parsedColor.length) {
-          parsedColor.forEach((color) => {
-            qb.andWhereRaw(
-              "JSON_CONTAINS(p.colors, JSON_OBJECT('color_id', ?), '$')",
-              [color]
-            );
-          });
-        }
+  //       if (Array.isArray(parsedColor) && parsedColor.length) {
+  //         parsedColor.forEach((color) => {
+  //           qb.andWhereRaw(
+  //             "JSON_CONTAINS(p.colors, JSON_OBJECT('color_id', ?), '$')",
+  //             [color]
+  //           );
+  //         });
+  //       }
 
-        if (Array.isArray(parsedSize) && parsedSize.length) {
-          parsedSize.forEach((size) => {
-            qb.andWhereRaw(
-              "JSON_CONTAINS(p.sizes, JSON_OBJECT('size_id', ?), '$')",
-              [size]
-            );
-          });
-        }
-        if (Array.isArray(parsedFabrics) && parsedFabrics.length) {
-          parsedFabrics.forEach((fabric) => {
-            qb.andWhereRaw(
-              "JSON_CONTAINS(p.variants, JSON_OBJECT('fabric_id', ?), '$')",
-              [fabric]
-            );
-          });
-        }
-      })
-      .groupBy("p.p_id")
-      .orderBy(sortBy as string, sortOrder as string)
-      .limit(parseInt((limit as string) || "100"))
-      .offset(parseInt((skip as string) || "0"));
+  //       if (Array.isArray(parsedSize) && parsedSize.length) {
+  //         parsedSize.forEach((size) => {
+  //           qb.andWhereRaw(
+  //             "JSON_CONTAINS(p.sizes, JSON_OBJECT('size_id', ?), '$')",
+  //             [size]
+  //           );
+  //         });
+  //       }
+  //       if (Array.isArray(parsedFabrics) && parsedFabrics.length) {
+  //         parsedFabrics.forEach((fabric) => {
+  //           qb.andWhereRaw(
+  //             "JSON_CONTAINS(p.variants, JSON_OBJECT('fabric_id', ?), '$')",
+  //             [fabric]
+  //           );
+  //         });
+  //       }
+  //     })
+  //     .groupBy("p.p_id")
+  //     .orderBy(sortBy as string, sortOrder as string)
+  //     .limit(parseInt((limit as string) || "100"))
+  //     .offset(parseInt((skip as string) || "0"));
 
-    const total = await this.db("product_view as p")
-      .countDistinct("p.p_id as total")
-      .join("e_order_details as op", "p.p_id", "op.ep_id")
-      .where((qb) => {
-        qb.andWhere("p.p_status", 1);
-        if (name) {
-          qb.andWhere("p.p_name_en", "like", `%${name}%`).orWhere(
-            "p.p_name_ar",
-            "like",
-            `%${name}%`
-          );
-        }
-        if (tag) {
-          qb.andWhere("p.p_tags", "like", `%${tag}%`);
-        }
-        if (minPrice || maxPrice) {
-          if (minPrice && maxPrice) {
-            qb.andWhereBetween("p.base_special_price", [minPrice, maxPrice]);
-          }
-          if (minPrice && !maxPrice) {
-            qb.andWhere("p.base_special_price", ">=", minPrice);
-          }
-          if (!minPrice && maxPrice) {
-            qb.andWhere("p.base_special_price", "<=", maxPrice);
-          }
-        }
+  //   const total = await this.db("product_view as p")
+  //     .countDistinct("p.p_id as total")
+  //     .join("e_order_details as op", "p.p_id", "op.ep_id")
+  //     .where((qb) => {
+  //       qb.andWhere("p.p_status", 1);
+  //       if (name) {
+  //         qb.andWhere("p.p_name_en", "like", `%${name}%`).orWhere(
+  //           "p.p_name_ar",
+  //           "like",
+  //           `%${name}%`
+  //         );
+  //       }
+  //       if (tag) {
+  //         qb.andWhere("p.p_tags", "like", `%${tag}%`);
+  //       }
+  //       if (minPrice || maxPrice) {
+  //         if (minPrice && maxPrice) {
+  //           qb.andWhereBetween("p.base_special_price", [minPrice, maxPrice]);
+  //         }
+  //         if (minPrice && !maxPrice) {
+  //           qb.andWhere("p.base_special_price", ">=", minPrice);
+  //         }
+  //         if (!minPrice && maxPrice) {
+  //           qb.andWhere("p.base_special_price", "<=", maxPrice);
+  //         }
+  //       }
 
-        if (Array.isArray(parsedColor) && parsedColor.length) {
-          parsedColor.forEach((color) => {
-            qb.andWhereRaw(
-              "JSON_CONTAINS(p.colors, JSON_OBJECT('color_id', ?), '$')",
-              [color]
-            );
-          });
-        }
+  //       if (Array.isArray(parsedColor) && parsedColor.length) {
+  //         parsedColor.forEach((color) => {
+  //           qb.andWhereRaw(
+  //             "JSON_CONTAINS(p.colors, JSON_OBJECT('color_id', ?), '$')",
+  //             [color]
+  //           );
+  //         });
+  //       }
 
-        if (Array.isArray(parsedSize) && parsedSize.length) {
-          parsedSize.forEach((size) => {
-            qb.andWhereRaw(
-              "JSON_CONTAINS(p.sizes, JSON_OBJECT('size_id', ?), '$')",
-              [size]
-            );
-          });
-        }
-        if (Array.isArray(parsedFabrics) && parsedFabrics.length) {
-          parsedFabrics.forEach((fabric) => {
-            qb.andWhereRaw(
-              "JSON_CONTAINS(p.variants, JSON_OBJECT('fabric_id', ?), '$')",
-              [fabric]
-            );
-          });
-        }
-      });
+  //       if (Array.isArray(parsedSize) && parsedSize.length) {
+  //         parsedSize.forEach((size) => {
+  //           qb.andWhereRaw(
+  //             "JSON_CONTAINS(p.sizes, JSON_OBJECT('size_id', ?), '$')",
+  //             [size]
+  //           );
+  //         });
+  //       }
+  //       if (Array.isArray(parsedFabrics) && parsedFabrics.length) {
+  //         parsedFabrics.forEach((fabric) => {
+  //           qb.andWhereRaw(
+  //             "JSON_CONTAINS(p.variants, JSON_OBJECT('fabric_id', ?), '$')",
+  //             [fabric]
+  //           );
+  //         });
+  //       }
+  //     });
 
-    return {
-      success: true,
-      message: "Best selling products fetched successfully",
-      data,
-      total: total[0].total,
-    };
-  }
+  //   return {
+  //     success: true,
+  //     message: "Best selling products fetched successfully",
+  //     data,
+  //     total: total[0].total,
+  //   };
+  // }
   // Get ecommerce product service
   public async getEcommProductService(req: Request) {
     const {
@@ -587,7 +588,6 @@ class EcommProductService extends EcommAbstractServices {
     const homeCategories = await this.db("category")
       .select("cate_id", "cate_name_en", "cate_name_ar", "cate_slug")
       .where("cate_home", 1);
-    // Initialize an array to hold the category-wise data
     const categoryData = await Promise.all(
       homeCategories.map(async (category: any) => {
         const relatedCategories = await this.db("category")
@@ -613,8 +613,8 @@ class EcommProductService extends EcommAbstractServices {
             "pv.total_sold",
             "pv.base_price",
             "pv.base_special_price",
+            "pv.colors",
             "pv.all_images",
-            "pv.sizes",
             "pv.p_images"
           )
           .join("product_category as pc", "pc.pc_p_id", "pv.p_id")
@@ -633,7 +633,6 @@ class EcommProductService extends EcommAbstractServices {
       })
     );
 
-    const bestSelling = await this.db("product_view as pv");
     return {
       success: true,
       message: "Home data fetched successfully",
