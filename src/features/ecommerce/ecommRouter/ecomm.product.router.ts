@@ -17,6 +17,12 @@ class EcommProductRouter extends EcommAbstractRouter {
         this.ecommProductValidator.getEcommProductQueryValidator(),
         this.ecommProductController.getEcommProductController
       );
+    this.router
+      .route("/banner")
+      .get(
+        this.ecommProductValidator.getEcommProductQueryValidator(),
+        this.ecommProductController.getBanners
+      );
 
     this.router.route("/home").get(this.ecommProductController.getHomeData);
 

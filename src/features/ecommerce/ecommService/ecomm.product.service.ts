@@ -8,6 +8,67 @@ class EcommProductService extends EcommAbstractServices {
   }
 
   // Get All Offer Products
+  public async getAllOffer(req: Request) {
+    const { limit, skip, sortBy = "", sortOrder = "asc", offer_id } = req.query;
+    const currentDate = new Date().toISOString().split("T")[0];
+    const data = await this.db("offers")
+      .select("*")
+      .where("start_date", "<=", currentDate)
+      .andWhere("end_date", ">=", currentDate)
+      .andWhere("status", 1)
+      .andWhere("is_banner", 0)
+      .orderBy(sortBy as string, sortOrder as string)
+      .limit(parseInt((limit as string) || "10"))
+      .offset(parseInt((skip as string) || "0"));
+
+    return {
+      success: true,
+      message: "Get all offer products successfully",
+      data: data,
+    };
+  }
+  public async getBanners(req: Request) {
+    const { limit = 10, skip = 0 } = req.query;
+    const currentDate = new Date().toISOString().split("T")[0];
+
+    const [categories, offers] = await Promise.all([
+      this.db("category")
+        .select(
+          "cate_name_en as banner_en",
+          "cate_name_ar as banner_ar",
+          "cate_slug as slug",
+          "cate_image as image",
+          this.db.raw("'category' as type")
+        )
+        .where("is_banner", 1)
+        .andWhere("cate_status", 1)
+        .limit(Number(limit))
+        .offset(Number(skip)),
+
+      this.db("offers")
+        .select(
+          "offer_name_en as banner_en",
+          "offer_name_ar as banner_ar",
+          "offer_slug as slug",
+          "offer_image as image",
+          this.db.raw("'offer' as type")
+        )
+        .where("start_date", "<=", currentDate)
+        .andWhere("end_date", ">=", currentDate)
+        .andWhere("status", 1)
+        .andWhere("is_banner", 1)
+        .limit(Number(limit))
+        .offset(Number(skip)),
+    ]);
+
+    return {
+      success: true,
+      message: "Get all banners successfully",
+      data: [...offers, ...categories],
+    };
+  }
+
+  // Get All Offer Products
   public async getAllOfferProducts(req: Request) {
     const {
       limit,
@@ -32,8 +93,6 @@ class EcommProductService extends EcommAbstractServices {
         "p.p_id as id",
         "p.p_name_en as p_name_en",
         "p.p_name_ar as p_name_ar",
-        "p.p_details_en as p_details_en",
-        "p.p_details_ar as p_details_ar",
         "p.is_featured",
         "p.all_images as images",
         "p.base_price",
