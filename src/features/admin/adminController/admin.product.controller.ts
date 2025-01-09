@@ -69,16 +69,6 @@ class AdminProductController extends AdminAbstractController {
       }
     }
   );
-  public getHomeData = this.asyncWrapper.wrap(
-    async (req: Request, res: Response) => {
-      const data = await this.productService.getHomeData(req);
-      if (data.success) {
-        res.status(200).json(data);
-      } else {
-        res.status(400).json(data);
-      }
-    }
-  );
 
   // get attributes by product id
   public getAttributesByProductController = this.asyncWrapper.wrap(
