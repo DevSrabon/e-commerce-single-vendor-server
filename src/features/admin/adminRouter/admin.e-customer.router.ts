@@ -15,6 +15,10 @@ class AdminEcustomerRouter extends AdminAbstractRouter {
       .route("/")
       .get(this.eCustomerController.getAllEcustomerController);
 
+    this.router
+      .route("/news-letter")
+      .get(this.eCustomerController.getAllNewsLetter);
+
     // get single e-customer
     this.router
       .route("/:id")

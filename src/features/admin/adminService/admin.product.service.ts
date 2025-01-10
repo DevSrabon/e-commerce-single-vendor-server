@@ -274,7 +274,7 @@ class AdminProductService extends AdminAbstractServices {
           }
           if (el.discount_type === "percentage") {
             if (
-              Number(el.price) <=
+              Number(el.price) <
               Number(el.price) - (Number(el.discount) * Number(el.price)) / 100
             ) {
               throw new CustomError(
@@ -920,7 +920,7 @@ class AdminProductService extends AdminAbstractServices {
 
   // create a product category
   public async createCategory(req: Request) {
-    const { cate_name_en, cate_name_ar, cate_parent_id } = req.body;
+    const { cate_name_en, cate_name_ar, cate_parent_id, ...rest } = req.body;
 
     const check = await this.db("category")
       .select("cate_id")
@@ -948,6 +948,7 @@ class AdminProductService extends AdminAbstractServices {
       cate_name_ar,
       cate_slug: Lib.stringToSlug(cate_name_en),
       cate_image: files[0]?.filename,
+      ...rest,
     });
 
     if (res.length) {
@@ -997,7 +998,9 @@ class AdminProductService extends AdminAbstractServices {
         "cate_status",
         "cate_image",
         "cate_slug",
-        "cate_parent_id"
+        "cate_parent_id",
+        "cate_home",
+        "is_banner"
       )
       .where(function () {
         if (cate_name_en) {
@@ -1030,6 +1033,8 @@ class AdminProductService extends AdminAbstractServices {
       cate_status: item.cate_status,
       cate_image: item.cate_image,
       parentId: item.cate_parent_id,
+      cate_home: item.cate_home,
+      is_banner: item.is_banner,
       children: [],
     }));
 

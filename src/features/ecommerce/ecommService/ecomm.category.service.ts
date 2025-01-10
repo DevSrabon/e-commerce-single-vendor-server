@@ -14,29 +14,38 @@ class EcommCategoryService extends EcommAbstractServices {
       limit,
       skip = 0,
       order_by = "cate_name_en",
+      is_banner,
+      cate_home,
       according_order = "asc",
-      cate_name_en,
+      cate_name,
     } = req.query;
 
     const dtbs = this.db("category");
 
-    if (limit) {
-      dtbs.limit(parseInt(limit as string));
-    }
-
-    const category = await dtbs
+    const categoryQuery = dtbs
       .select(
         "cate_id",
         "cate_name_en",
         "cate_name_ar",
-        "cate_status",
+        "is_banner",
+        "cate_home",
         "cate_image",
         "cate_slug",
         "cate_parent_id"
       )
       .where(function () {
-        if (cate_name_en) {
-          this.where("cate_name_en", "like", `%${cate_name_en}%`);
+        if (cate_name) {
+          this.where("cate_name_en", "like", `%${cate_name}%`).orWhere(
+            "cate_name_ar",
+            "like",
+            `%${cate_name}%`
+          );
+        }
+        if (is_banner) {
+          this.andWhere({ is_banner });
+        }
+        if (cate_home) {
+          this.andWhere({ cate_home });
         }
         if (status && parent) {
           this.andWhere("cate_status", status);
@@ -57,7 +66,11 @@ class EcommCategoryService extends EcommAbstractServices {
       })
       .offset(parseInt(skip as string))
       .orderBy(order_by as string, according_order as string);
+    if (limit) {
+      dtbs.limit(parseInt(limit as string));
+    }
 
+    const category = await categoryQuery;
     const categories = category.map((item: any) => ({
       id: item.cate_id,
       cate_name_en: item.cate_name_en,
@@ -65,6 +78,8 @@ class EcommCategoryService extends EcommAbstractServices {
       cate_slug: item.cate_slug,
       cate_status: item.cate_status,
       cate_image: item.cate_image,
+      cate_home: item.cate_home,
+      is_banner: item.is_banner,
       parentId: item.cate_parent_id,
       children: [],
     }));

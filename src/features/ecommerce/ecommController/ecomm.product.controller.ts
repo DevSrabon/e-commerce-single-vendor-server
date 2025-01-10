@@ -21,6 +21,12 @@ class EcommProductController extends EcommAbstractController {
       res.json(data);
     }
   );
+  public searchEcommProduct = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.ecommProductService.searchEcommProduct(req);
+      res.json(data);
+    }
+  );
 
   // get ecommerce product filter name, tags, category, short by limit skip
   public getEcommProductController = this.asyncWrapper.wrap(

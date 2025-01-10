@@ -13,12 +13,13 @@ class EcommReviewService extends EcommAbstractServices {
     const { ec_id } = req.customer;
     const files = (req.files as Express.Multer.File[]) || [];
     const checkProduct = await this.db("e_order_details")
-      .andWhere("eo_id", product_id)
+      .andWhere("ep_id", product_id)
       .andWhere("eo_id", order_id)
       .first();
     if (!checkProduct) {
       throw new CustomError("Product Doesn't Found!", 404, "Not Found");
     }
+
     const checkOrder = await this.db("e_order")
       .select("id")
       .andWhere("id", order_id)

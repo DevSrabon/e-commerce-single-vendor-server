@@ -31,6 +31,18 @@ class AdminEcustomerController extends AdminAbstractController {
       }
     }
   );
+  public getAllNewsLetter = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const { code, ...data } = await this.eCustomerService.getAllNewsLetter(
+        req
+      );
+      if (data.success) {
+        res.status(code).json(data);
+      } else {
+        this.error(data.message, 400);
+      }
+    }
+  );
 }
 
 export default AdminEcustomerController;

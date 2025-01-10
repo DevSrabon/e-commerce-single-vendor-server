@@ -468,6 +468,26 @@ class CommonService extends CommonAbstractServices {
     }
     await this.emitNotification(payload);
   }
+
+  // Newsletter
+  public async addNewsLetter(req: Request) {
+    const { email } = req.body;
+    const checkEmail = await this.db("newsletter")
+      .select("id")
+      .where({ email })
+      .first();
+    if (checkEmail) {
+      return {
+        success: true,
+        message: "you are already Subscribe!",
+      };
+    }
+    await this.db("newsletter").insert({ email });
+    return {
+      success: true,
+      message: "Successfully Subscribe",
+    };
+  }
 }
 
 export default CommonService;

@@ -69,6 +69,31 @@ class EcommProductService extends EcommAbstractServices {
     };
   }
 
+  public async searchEcommProduct(req: Request) {
+    const { searchParams } = req.query;
+    const data = await this.db("product_view as pv")
+      .select(
+        "pv.p_id",
+        "pv.p_name_en",
+        "pv.p_name_ar",
+        "pv.p_slug",
+        "pv.avg_rating",
+        "pv.total_sold",
+        "pv.base_price",
+        "pv.base_special_price",
+        this.db.raw(`JSON_EXTRACT(pv.all_images, '$[0]') AS image`)
+      )
+      .andWhereILike("pv.p_name_en", `%${searchParams}%`)
+      .orWhereILike("pv.p_name_ar", `%${searchParams}%`)
+      .orderBy("pv.p_name_en", "asc")
+      .limit(10);
+    return {
+      success: true,
+      message: "Data fetched successfully",
+      data,
+    };
+  }
+
   // Get All Offer Products
   public async getAllOfferProducts(req: Request) {
     const {
@@ -407,6 +432,7 @@ class EcommProductService extends EcommAbstractServices {
       serialBy,
       minPrice,
       maxPrice,
+      bestSelling,
       colors,
       sizes,
       fabrics,
@@ -425,24 +451,45 @@ class EcommProductService extends EcommAbstractServices {
     if (serialBy) {
       serial = serialBy as string;
     }
+    if (bestSelling && !shortBy) {
+      orderBy = "p.total_sold";
+      serial = "desc";
+    }
     const query = this.db("product_view as p")
       .select(
-        "p.p_id as id",
-        "p.p_name_en as p_name_en",
-        "p.p_name_ar as p_name_ar",
-        "p.p_details_en as p_details_en",
-        "p.p_details_ar as p_details_ar",
-        "p.is_featured",
-        "p.colors",
-        "p.sizes",
-        "p.variants",
-        "p.all_images as images",
+        // "p.p_id as id",
+        // "p.p_name_en as p_name_en",
+        // "p.p_name_ar as p_name_ar",
+        // "p.p_details_en as p_details_en",
+        // "p.p_details_ar as p_details_ar",
+        // "p.is_featured",
+        // "p.colors",
+        // "p.sizes",
+        // "p.variants",
+        // "p.all_images as images",
+        // "p.base_price",
+        // "p.base_special_price",
+        // "p.p_slug as slug",
+        // "p.available_stock",
+        // "p.p_tags as tags",
+        // "p.avg_rating"
+        "p.p_id",
+        "p.p_name_en",
+        "p.p_name_ar",
+        "p.p_slug",
+        "p.p_tags",
+
+        "p.stock_alert",
+        "p.avg_rating",
+        "p.rating_count",
+        "p.offer_details",
+        "p.available_stock",
+        "p.total_sold",
         "p.base_price",
         "p.base_special_price",
-        "p.p_slug as slug",
-        "p.available_stock",
-        "p.p_tags as tags",
-        "p.avg_rating"
+        "p.colors",
+        "p.all_images",
+        "p.p_images"
       )
       .andWhere((qb) => {
         qb.andWhere("p.p_status", 1);
@@ -458,6 +505,7 @@ class EcommProductService extends EcommAbstractServices {
           );
         }
         if (featured) {
+          query.select("p.is_featured");
           qb.andWhere("p.is_featured", 1);
         }
 
@@ -496,6 +544,9 @@ class EcommProductService extends EcommAbstractServices {
               [fabric]
             );
           });
+        }
+        if (bestSelling) {
+          query.andWhere("p.total_sold", ">", 0);
         }
       })
       .orderBy(orderBy, serial);

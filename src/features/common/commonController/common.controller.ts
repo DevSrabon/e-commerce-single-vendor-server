@@ -121,6 +121,18 @@ class CommonController extends CommonAbstractController {
       }
     }
   );
+
+  // NewsLetter
+  public addNewsLetter = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.commonService.addNewsLetter(req);
+      if (data.success) {
+        res.status(200).json(data);
+      } else {
+        res.status(400).json(data);
+      }
+    }
+  );
 }
 
 export default CommonController;

@@ -138,6 +138,46 @@ class AdminEcustomerService extends AdminAbstractServices {
       };
     }
   }
+
+  public async getAllNewsLetter(req: Request) {
+    const {
+      email,
+      start_date,
+      end_date,
+      limit = "100",
+      skip = "0",
+    } = req.query;
+    const data = await this.db("newsletter")
+      .select("*")
+      .where((qb) => {
+        if (email) {
+          qb.where({ email });
+        }
+        if (start_date && end_date) {
+          qb.andWhereBetween("created_at", [start_date, end_date]);
+        }
+      })
+      .orderBy("id", "desc")
+      .limit(parseInt(limit as string))
+      .offset(parseInt(skip as string));
+    const total = await this.db("newsletter")
+      .count("id as total")
+      .where((qb) => {
+        if (email) {
+          qb.where({ email });
+        }
+        if (start_date && end_date) {
+          qb.andWhereBetween("created_at", [start_date, end_date]);
+        }
+      });
+    return {
+      success: true,
+      message: "Data fetch Successfully",
+      code: 200,
+      data: data,
+      total: total[0].total,
+    };
+  }
 }
 
 export default AdminEcustomerService;

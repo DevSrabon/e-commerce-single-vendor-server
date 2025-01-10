@@ -91,6 +91,9 @@ class CommonValidator {
   ) {
     return [query(queryParam, message).optional()];
   }
+  public newsLetterValidator() {
+    return [body("email", "Enter valid email").isEmail().exists()];
+  }
 }
 
 export default CommonValidator;

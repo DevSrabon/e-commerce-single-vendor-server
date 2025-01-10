@@ -29,6 +29,12 @@ class CommonRouter extends CommonAbstractRouter {
       "/delivery-charge",
       this.CommonController.getDeliveryCharge
     );
+
+    this.router.post(
+      "/news-letter",
+      this.commonValidator.newsLetterValidator(),
+      this.CommonController.addNewsLetter
+    );
   }
 }
 export default CommonRouter;

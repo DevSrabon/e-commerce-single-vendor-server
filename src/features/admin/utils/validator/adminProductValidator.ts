@@ -44,6 +44,8 @@ class AdminProductValidator {
         .exists({ checkFalsy: false })
         .isString(),
       body("cate_parent_id", "Provide valid parent id").isNumeric().optional(),
+      body("is_banner", "Provide valid parent id").isIn(["0", "1"]).optional(),
+      body("cate_home", "Provide valid parent id").isIn(["0", "1"]).optional(),
     ];
   }
 
@@ -62,6 +64,8 @@ class AdminProductValidator {
       body("cate_status", "Provide valid status 0 or 1")
         .isIn(["0", "1"])
         .optional(),
+      body("is_banner", "Provide valid parent id").isIn(["0", "1"]).optional(),
+      body("cate_home", "Provide valid parent id").isIn(["0", "1"]).optional(),
     ];
   }
 
