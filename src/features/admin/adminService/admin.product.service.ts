@@ -920,56 +920,73 @@ class AdminProductService extends AdminAbstractServices {
 
   // create a product category
   public async createCategory(req: Request) {
-    const { cate_name_en, cate_name_ar, cate_parent_id, ...rest } = req.body;
+    return await this.db.transaction(async (trx) => {
+      const { cate_name_en, cate_name_ar, cate_parent_id, ...rest } = req.body;
 
-    const check = await this.db("category")
-      .select("cate_id")
-      .where({ cate_name_en });
+      const check = await trx("category")
+        .select("cate_id")
+        .where({ cate_name_en });
 
-    if (check.length) {
-      return {
-        success: false,
-        message: "Category name already exist",
-      };
-    }
+      if (check.length) {
+        return {
+          success: false,
+          message: "Category name already exist",
+        };
+      }
 
-    const files = (req.files as Express.Multer.File[]) || [];
+      const files = (req.files as Express.Multer.File[]) || [];
 
-    if (!cate_parent_id && (!files || !files.length)) {
-      return {
-        success: false,
-        message: "You must provide category image",
-      };
-    }
+      // if (!cate_parent_id && (!files || !files.length)) {
+      //   return {
+      //     success: false,
+      //     message: "You must provide category image",
+      //   };
+      // }
+      const sliderImg: string[] = [];
+      files.forEach((file) => {
+        if (file.fieldname === "slider") {
+          sliderImg.push(file.filename);
+        } else {
+          rest[file.fieldname] = file.filename;
+        }
+      });
+      const res = await trx("category").insert({
+        cate_name_en,
+        cate_parent_id,
+        cate_name_ar,
+        cate_slug: Lib.stringToSlug(cate_name_en),
+        ...rest,
+      });
+      if (sliderImg.length) {
+        const sliderPayload = sliderImg.map((i) => {
+          return {
+            cate_id: res[0],
+            image: i,
+          };
+        });
+        await trx("category_slider").insert(sliderPayload);
+      }
 
-    const res = await this.db("category").insert({
-      cate_name_en,
-      cate_parent_id,
-      cate_name_ar,
-      cate_slug: Lib.stringToSlug(cate_name_en),
-      cate_image: files[0]?.filename,
-      ...rest,
+      if (res.length) {
+        return {
+          success: true,
+          data: {
+            cate_id: res[0],
+            cate_name_en,
+            cate_parent_id,
+            cate_name_ar,
+            cate_slug: Lib.stringToSlug(cate_name_en),
+            cate_image: files[0]?.filename,
+          },
+          message: "Category has been created",
+        };
+      } else {
+        return {
+          success: false,
+          message: "Cannot create category",
+        };
+      }
     });
-
-    if (res.length) {
-      return {
-        success: true,
-        data: {
-          cate_id: res[0],
-          cate_name_en,
-          cate_parent_id,
-          cate_name_ar,
-          cate_slug: Lib.stringToSlug(cate_name_en),
-          cate_image: files[0]?.filename,
-        },
-        message: "Category has been created",
-      };
-    } else {
-      return {
-        success: false,
-        message: "Cannot create category",
-      };
-    }
   }
 
   // get product category service
@@ -1000,7 +1017,23 @@ class AdminProductService extends AdminAbstractServices {
         "cate_slug",
         "cate_parent_id",
         "cate_home",
-        "is_banner"
+        "is_banner",
+        "style",
+        this.db.raw(`
+        COALESCE(
+    (
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', cs.id,
+          'image', cs.image
+        )
+      )
+      FROM category_slider cs
+      WHERE cs.cate_id = cate_id
+    ),
+    '[]'
+  ) AS sliders
+        `)
       )
       .where(function () {
         if (cate_name_en) {
@@ -1034,7 +1067,9 @@ class AdminProductService extends AdminAbstractServices {
       cate_image: item.cate_image,
       parentId: item.cate_parent_id,
       cate_home: item.cate_home,
+      style: item.style,
       is_banner: item.is_banner,
+      sliders: item.sliders ? JSON.parse(item.sliders) : [],
       children: [],
     }));
 
@@ -1066,60 +1101,96 @@ class AdminProductService extends AdminAbstractServices {
 
   // update product category service
   public async updateCategory(req: Request) {
-    const { id } = req.params;
-    const checkCate = await this.db("category")
-      .select("cate_image")
-      .where("cate_id", id);
+    return await this.db.transaction(async (trx) => {
+      const { id } = req.params;
+      const checkCate = await trx("category")
+        .select("cate_image")
+        .where("cate_id", id);
 
-    if (!checkCate.length) {
-      return {
-        success: false,
-        message: "No category found with this id",
-      };
-    }
-
-    const { cate_name_en, ...rest } = req.body;
-
-    if (cate_name_en) {
-      const checkName = await this.db("category")
-        .select("cate_id")
-        .where("cate_name_en", cate_name_en);
-
-      if (checkName.length) {
+      if (!checkCate.length) {
         return {
           success: false,
-          message: "Category name already exist",
+          message: "No category found with this id",
         };
       }
-      rest.cate_name_en = cate_name_en;
-      rest.cate_slug = Lib.stringToSlug(cate_name_en);
-    }
 
-    const files = (req.files as Express.Multer.File[]) || [];
-    if (files.length) {
-      rest.cate_image = files[0].filename;
-    }
+      const { cate_name_en, delSliders, ...rest } = req.body;
 
-    const res = await this.db("category").update(rest).where("cate_id", id);
-    if (res) {
-      if (files.length && checkCate[0].cate_image) {
-        await this.manageFile.deleteFromStorage(checkCate[0].cate_image);
+      if (cate_name_en) {
+        const checkName = await trx("category")
+          .select("cate_id")
+          .where("cate_name_en", cate_name_en);
+
+        if (checkName.length) {
+          return {
+            success: false,
+            message: "Category name already exist",
+          };
+        }
+        rest.cate_name_en = cate_name_en;
+        rest.cate_slug = Lib.stringToSlug(cate_name_en);
       }
 
-      return {
-        success: true,
-        data: {
-          cate_image: rest.cate_image,
-          cate_slug: rest.cate_slug,
-        },
-        message: "Category updated successfully",
-      };
-    } else {
-      return {
-        success: false,
-        message: "Cannot update category now",
-      };
-    }
+      const files = (req.files as Express.Multer.File[]) || [];
+      const slider: string[] = [];
+      if (files.length) {
+        files.forEach((file) => {
+          if (file.fieldname === "slider") {
+            slider.push(file.filename);
+          } else {
+            rest[file.fieldname] = file.filename;
+          }
+        });
+        rest.cate_image = files[0].filename;
+      }
+
+      const res = await trx("category").update(rest).where("cate_id", id);
+      if (slider.length) {
+        const sliderPayload = slider.map((i) => {
+          return {
+            cate_id: id,
+            image: i,
+          };
+        });
+        await trx("category_slider").insert(sliderPayload);
+      }
+      if (delSliders) {
+        const parsedDel = JSON.parse(delSliders);
+        const checkSliders = await trx("category_slider")
+          .select("image")
+          .whereIn("id", parsedDel);
+
+        if (parsedDel.length !== checkSliders.length) {
+          throw new CustomError("Some Slider Image Not found For Delete!", 404);
+        }
+        await trx("category_slider").del().whereIn("id", parsedDel);
+        await this.manageFile.deleteFromStorage(
+          checkSliders.map((img) => img.image)
+        );
+      }
+      if (rest.cate_image && checkCate[0].cate_image) {
+        await this.manageFile.deleteFromStorage(checkCate[0].cate_image);
+      }
+      if (res) {
+        if (files.length && checkCate[0].cate_image) {
+          await this.manageFile.deleteFromStorage(checkCate[0].cate_image);
+        }
+
+        return {
+          success: true,
+          data: {
+            cate_image: rest.cate_image,
+            cate_slug: rest.cate_slug,
+          },
+          message: "Category updated successfully",
+        };
+      } else {
+        return {
+          success: false,
+          message: "Cannot update category now",
+        };
+      }
+    });
   }
 
   // Get All tags
