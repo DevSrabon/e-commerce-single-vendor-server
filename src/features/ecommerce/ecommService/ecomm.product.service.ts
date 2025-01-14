@@ -805,6 +805,52 @@ class EcommProductService extends EcommAbstractServices {
 
     return data;
   }
+
+  // Filters
+  public async getFilterAttributes(req: Request) {
+    const { cate_slug } = req.query;
+    let cate_id;
+    if (cate_slug) {
+      const getCate = await this.db("category")
+        .select("cate_id")
+        .where({ cate_slug })
+        .first();
+      cate_id = getCate.cate_id;
+    }
+    const colorsQuery = this.db("color")
+      .select("id", "color_en", "color_ar", "code")
+      .where("is_active", 1);
+    // if (cate_id) {
+    //   colorsQuery
+    //     .join("p_color as pc", "pc.color_id", "=", "color.id")
+    //     .join("product_category as p_cat", "pc.pc_p_id", "=", "color.p_id")
+    //     .where("p_cat.cate_id", cate_id);
+    // }
+    const colors = await colorsQuery;
+    const sizes = await this.db("size")
+      .select("id", "size")
+      .where("is_active", 1);
+    const fabrics = await this.db("fabric")
+      .select("id", "name_en", "name_ar")
+      .where("is_active", 1);
+    const maxPriceRange = await this.db("variant_product").max(
+      "price as price"
+    );
+    const minPriceRange = await this.db("variant_product").min(
+      "price as price"
+    );
+    return {
+      success: true,
+      message: "Data fetched successfully!",
+      data: {
+        colors,
+        sizes,
+        fabrics,
+        maxPriceRange: maxPriceRange[0].price,
+        minPriceRange: minPriceRange[0].price,
+      },
+    };
+  }
 }
 
 export default EcommProductService;

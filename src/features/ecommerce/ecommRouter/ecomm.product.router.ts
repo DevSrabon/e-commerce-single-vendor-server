@@ -41,6 +41,9 @@ class EcommProductRouter extends EcommAbstractRouter {
     this.router
       .route("/best-selling-products")
       .get(this.ecommProductController.getBestSellingProducts);
+    this.router
+      .route("/filters")
+      .get(this.ecommProductController.getFilterAttributes);
 
     // Get Single Product
     this.router

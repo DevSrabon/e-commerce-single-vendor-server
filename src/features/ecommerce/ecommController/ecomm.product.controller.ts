@@ -74,6 +74,17 @@ class EcommProductController extends EcommAbstractController {
       }
     }
   );
+  public getFilterAttributes = this.asyncWrapper.wrap(
+    async (req: Request, res: Response) => {
+      const data = await this.ecommProductService.getFilterAttributes(req);
+
+      if (data.success) {
+        res.status(200).json(data);
+      } else {
+        res.status(404).json(data);
+      }
+    }
+  );
 }
 
 export default EcommProductController;
